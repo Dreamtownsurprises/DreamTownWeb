@@ -1,44 +1,69 @@
 const { createClient } = supabase;
-const db = createClient(window.DTS_SUPABASE_URL, window.DTS_SUPABASE_PUBLISHABLE_KEY);
+const db = createClient(
+  window.DTS_SUPABASE_URL,
+  window.DTS_SUPABASE_PUBLISHABLE_KEY
+);
 
-let bookings = [], month = new Date();
+let bookings = [];
+let month = new Date();
 month.setDate(1);
 let currentUser = null;
 
 const $ = x => document.getElementById(x);
-const today = () => new Date().toISOString().slice(0,10);
-const fmt = s => new Date(s + 'T00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({
-  '&':'&amp;',
-  '<':'&lt;',
-  '>':'&gt;',
-  "'":'&#39;',
-  '"':'&quot;'
-}[c]));
+
+const today = () =>
+  new Date().toISOString().slice(0, 10);
+
+const fmt = s =>
+  new Date(s + 'T00:00').toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+const esc = v =>
+  String(v ?? '').replace(/[&<>'"]/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[c]));
 
 const icons = {
-  'Anniversary Surprise':'♥',
-  'Birthday Surprise':'🎂',
-  'Proposal Surprise':'💍',
-  'Romantic Setup':'♥',
-  'Welcome Surprise':'✦',
-  'Custom Event':'✿'
+  'Anniversary Surprise': '♥',
+  'Birthday Surprise': '🎂',
+  'Proposal Surprise': '💍',
+  'Romantic Setup': '♥',
+  'Welcome Surprise': '✦',
+  'Custom Event': '✿'
 };
 
-function showLogin(){
+
+/* =========================
+   LOGIN
+========================= */
+
+function showLogin() {
   $('login').classList.remove('hidden');
   $('app').classList.add('hidden');
 }
 
-function showApp(){
+function showApp() {
   $('login').classList.add('hidden');
   $('app').classList.remove('hidden');
 }
 
-function setAuthMessage(msg, error=true){
+function setAuthMessage(msg, error = true) {
   $('loginError').textContent = msg || '';
-  $('loginError').style.color = error ? '' : '#5f7d61';
+  $('loginError').style.color =
+    error ? '' : '#5f7d61';
 }
+
+
+/* =========================
+   LOGIN FORM
+========================= */
 
 $('loginForm').onsubmit = async e => {
   e.preventDefault();
@@ -48,35 +73,58 @@ $('loginForm').onsubmit = async e => {
   const email = $('user').value.trim();
   const password = $('pass').value;
 
-  const { error } = await db.auth.signInWithPassword({
-    email,
-    password
-  });
+  const { error } =
+    await db.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  if(error){
-    setAuthMessage(error.message || 'Incorrect email or password.');
+  if (error) {
+    setAuthMessage(
+      error.message ||
+      'Incorrect email or password.'
+    );
     return;
   }
 
   await startApp();
 };
 
+
+/* =========================
+   LOGOUT
+========================= */
+
 $('logout').onclick = async () => {
   await db.auth.signOut();
   showLogin();
 };
 
-$('forgot').onclick = async () => {
-  const email = $('user').value.trim();
 
-  if(!email){
-    setAuthMessage('Enter your email first, then click Forgot password.');
+/* =========================
+   FORGOT PASSWORD
+========================= */
+
+$('forgot').onclick = async () => {
+  const email =
+    $('user').value.trim();
+
+  if (!email) {
+    setAuthMessage(
+      'Enter your email first, then click Forgot password.'
+    );
     return;
   }
 
-  const { error } = await db.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
+  const { error } =
+    await db.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo:
+          window.location.origin +
+          window.location.pathname
+      }
+    );
 
   setAuthMessage(
     error
@@ -85,6 +133,11 @@ $('forgot').onclick = async () => {
     !error
   );
 };
+
+
+/* =========================
+   SIGN UP
+========================= */
 
 $('showSignup').onclick = () => {
   $('loginPanel').classList.add('hidden');
@@ -101,51 +154,67 @@ $('showLogin').onclick = () => {
 $('signupForm').onsubmit = async e => {
   e.preventDefault();
 
-  const name = $('signupName').value.trim();
-  const email = $('signupEmail').value.trim();
-  const password = $('signupPass').value;
+  const name =
+    $('signupName').value.trim();
 
-  if(password.length < 8){
+  const email =
+    $('signupEmail').value.trim();
+
+  const password =
+    $('signupPass').value;
+
+  if (password.length < 8) {
     $('signupError').textContent =
       'Password must be at least 8 characters.';
     return;
   }
 
-  $('signupError').textContent = 'Creating account…';
+  $('signupError').textContent =
+    'Creating account…';
 
-  const { data, error } = await db.auth.signUp({
-    email,
-    password,
-    options:{
-      data:{
-        full_name:name
+  const { data, error } =
+    await db.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name
+        }
       }
-    }
-  });
+    });
 
-  if(error){
-    $('signupError').textContent = error.message;
+  if (error) {
+    $('signupError').textContent =
+      error.message;
     return;
   }
 
-  if(data.session){
+  if (data.session) {
+
     $('signupError').textContent =
       'Account created. Loading dashboard…';
 
     await startApp();
-  }else{
+
+  } else {
+
     $('signupError').textContent =
       'Account created. If email confirmation is enabled, confirm your email first. Then sign in. New staff accounts must be authorized by the owner in Supabase.';
   }
 };
 
-async function startApp(){
+
+/* =========================
+   START APPLICATION
+========================= */
+
+async function startApp() {
 
   const {
-    data:{ user }
+    data: { user }
   } = await db.auth.getUser();
 
-  if(!user){
+  if (!user) {
     showLogin();
     return;
   }
@@ -156,10 +225,10 @@ async function startApp(){
   } = await db
     .from('staff')
     .select('user_id,full_name')
-    .eq('user_id',user.id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
-  if(error || !staff){
+  if (error || !staff) {
 
     await db.auth.signOut();
 
@@ -188,18 +257,24 @@ async function startApp(){
   $('profileInitials').textContent =
     currentUser.full_name
       .split(/\s+/)
-      .map(x=>x[0])
-      .slice(0,2)
+      .map(x => x[0])
+      .slice(0, 2)
       .join('')
       .toUpperCase();
 
   showApp();
 
   await loadBookings();
+
   render();
 }
 
-async function loadBookings(){
+
+/* =========================
+   LOAD BOOKINGS
+========================= */
+
+async function loadBookings() {
 
   const {
     data,
@@ -207,89 +282,114 @@ async function loadBookings(){
   } = await db
     .from('bookings')
     .select('*')
-    .order('event_date',{ascending:true});
+    .order('event_date', {
+      ascending: true
+    });
 
-  if(error){
+  if (error) {
     console.error(error);
-    alert('Could not load bookings: ' + error.message);
+
+    alert(
+      'Could not load bookings: ' +
+      error.message
+    );
+
     return;
   }
 
-  bookings = (data || []).map(b => ({
-    id:b.id,
-    type:b.event_type,
-    date:b.event_date,
-    time:b.event_time || '',
-    bookedBy:b.booked_by,
-    customer:b.customer_name || '',
-    phone:b.phone || '',
-    status:b.status,
-    notes:b.notes || ''
-  }));
+  bookings =
+    (data || []).map(b => ({
+      id: b.id,
+      type: b.event_type,
+      date: b.event_date,
+      time: b.event_time || '',
+      bookedBy: b.booked_by,
+      customer: b.customer_name || '',
+      phone: b.phone || '',
+      status: b.status,
+      notes: b.notes || ''
+    }));
 }
 
-async function saveBooking(){
 
-  const id = $('editId').value;
+/* =========================
+   SAVE BOOKING
+========================= */
+
+async function saveBooking() {
+
+  const id =
+    $('editId').value;
 
   const b = {
-    type:$('type').value,
-    date:$('date').value,
-    time:$('time').value,
-    bookedBy:$('bookedBy').value.trim(),
-    customer:$('customer').value.trim(),
-    phone:$('phone').value.trim(),
-    status:$('status').value,
-    notes:$('notes').value.trim()
+    type: $('type').value,
+    date: $('date').value,
+    time: $('time').value,
+    bookedBy: $('bookedBy').value.trim(),
+    customer: $('customer').value.trim(),
+    phone: $('phone').value.trim(),
+    status: $('status').value,
+    notes: $('notes').value.trim()
   };
 
-  const duplicate = bookings.find(
-    x =>
-      x.date === b.date &&
-      x.status !== 'Cancelled' &&
-      x.id !== id
-  );
+  const duplicate =
+    bookings.find(
+      x =>
+        x.date === b.date &&
+        x.status !== 'Cancelled' &&
+        x.id !== id
+    );
 
-  if(duplicate){
+  if (duplicate) {
+
     $('formError').textContent =
       `This date is already booked by ${duplicate.bookedBy}. Choose another date.`;
+
     return;
   }
 
-  $('formError').textContent = 'Saving…';
+  $('formError').textContent =
+    'Saving…';
 
   const row = {
-    event_date:b.date,
-    event_time:b.time || null,
-    event_type:b.type,
-    booked_by:b.bookedBy,
-    customer_name:b.customer || null,
-    phone:b.phone || null,
-    status:b.status,
-    notes:b.notes || null
+    event_date: b.date,
+    event_time: b.time || null,
+    event_type: b.type,
+    booked_by: b.bookedBy,
+    customer_name:
+      b.customer || null,
+    phone: b.phone || null,
+    status: b.status,
+    notes: b.notes || null
   };
 
   let result;
 
-  if(id){
-    result = await db
-      .from('bookings')
-      .update(row)
-      .eq('id',id)
-      .select()
-      .single();
-  }else{
-    result = await db
-      .from('bookings')
-      .insert({
-        ...row,
-        created_by:currentUser.id
-      })
-      .select()
-      .single();
+  if (id) {
+
+    result =
+      await db
+        .from('bookings')
+        .update(row)
+        .eq('id', id)
+        .select()
+        .single();
+
+  } else {
+
+    result =
+      await db
+        .from('bookings')
+        .insert({
+          ...row,
+          created_by:
+            currentUser.id
+        })
+        .select()
+        .single();
   }
 
-  if(result.error){
+  if (result.error) {
 
     $('formError').textContent =
       result.error.code === '23505'
@@ -305,33 +405,51 @@ async function saveBooking(){
 
   render();
 
-  if(!$('bookings').classList.contains('hidden')){
+  if (
+    !$('bookings')
+      .classList
+      .contains('hidden')
+  ) {
     renderBookings();
   }
 }
 
-$('bookingForm').onsubmit = e => {
-  e.preventDefault();
-  saveBooking();
-};
+$('bookingForm').onsubmit =
+  e => {
+    e.preventDefault();
+    saveBooking();
+  };
 
-function render(){
+
+/* =========================
+   DASHBOARD
+========================= */
+
+function render() {
   stats();
   calendar();
   upcoming();
 }
 
-function stats(){
+function stats() {
 
-  const y = new Date().getFullYear();
-  const m = String(new Date().getMonth()+1).padStart(2,'0');
+  const y =
+    new Date().getFullYear();
+
+  const m =
+    String(
+      new Date().getMonth() + 1
+    ).padStart(2, '0');
 
   $('total').textContent =
     bookings.length;
 
   $('month').textContent =
     bookings.filter(
-      b => b.date?.startsWith(y+'-'+m)
+      b =>
+        b.date?.startsWith(
+          y + '-' + m
+        )
     ).length;
 
   $('upcoming').textContent =
@@ -344,34 +462,56 @@ function stats(){
   $('customers').textContent =
     new Set(
       bookings.map(
-        b => b.customer || b.bookedBy
+        b =>
+          b.customer ||
+          b.bookedBy
       )
     ).size;
 }
 
-function calendar(){
 
-  const y = month.getFullYear();
-  const m = month.getMonth();
+/* =========================
+   CALENDAR
+========================= */
+
+function calendar() {
+
+  const y =
+    month.getFullYear();
+
+  const m =
+    month.getMonth();
 
   const first =
-    new Date(y,m,1).getDay();
+    new Date(y, m, 1).getDay();
 
   const days =
-    new Date(y,m+1,0).getDate();
+    new Date(
+      y,
+      m + 1,
+      0
+    ).getDate();
 
   $('calTitle').textContent =
-    month.toLocaleString('en-IN',{
-      month:'long',
-      year:'numeric'
-    });
+    month.toLocaleString(
+      'en-IN',
+      {
+        month: 'long',
+        year: 'numeric'
+      }
+    );
 
-  let h = '<span></span>'.repeat(first);
+  let h =
+    '<span></span>'.repeat(first);
 
-  for(let d=1;d<=days;d++){
+  for (
+    let d = 1;
+    d <= days;
+    d++
+  ) {
 
     const s =
-      `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
     const b =
       bookings.some(
@@ -382,7 +522,7 @@ function calendar(){
 
     h += `
       <button
-        class="${b?'booked ':''}${s===today()?'today':''}"
+        class="${b ? 'booked ' : ''}${s === today() ? 'today' : ''}"
         onclick="openModal('${s}')">
         ${d}
       </button>
@@ -392,7 +532,12 @@ function calendar(){
   $('days').innerHTML = h;
 }
 
-function upcoming(){
+
+/* =========================
+   UPCOMING BOOKINGS
+========================= */
+
+function upcoming() {
 
   const a =
     bookings
@@ -402,61 +547,86 @@ function upcoming(){
           b.status !== 'Cancelled'
       )
       .sort(
-        (a,b) =>
-          a.date.localeCompare(b.date)
+        (a, b) =>
+          a.date.localeCompare(
+            b.date
+          )
       )
-      .slice(0,5);
+      .slice(0, 5);
 
   $('upcomingList').innerHTML =
     a.length
-      ? a.map(b => `
-        <div class="booking">
 
-          <div class="thumb">
-            ${icons[b.type] || '✦'}
-          </div>
+      ? a.map(
+          b => `
+          <div class="booking">
 
-          <div>
-            <b>${esc(b.type)}</b>
-            <div class="sub">
-              ${esc(
-                b.notes ||
-                'Special surprise experience'
-              )}
+            <div class="thumb">
+              ${icons[b.type] || '✦'}
             </div>
+
+            <div>
+              <b>${esc(b.type)}</b>
+
+              <div class="sub">
+                ${esc(
+                  b.notes ||
+                  'Special surprise experience'
+                )}
+              </div>
+            </div>
+
+            <div class="meta">
+              <b>▣ ${fmt(b.date)}</b>
+              <br>
+              ◷ ${esc(b.time || 'TBD')}
+            </div>
+
+            <div class="meta">
+              Booked by
+              <br>
+              <b>${esc(b.bookedBy)}</b>
+            </div>
+
+            <span class="badge">
+              ${esc(
+                b.status ||
+                'Confirmed'
+              )}
+            </span>
+
           </div>
+        `
+        ).join('')
 
-          <div class="meta">
-            <b>▣ ${fmt(b.date)}</b><br>
-            ◷ ${esc(b.time || 'TBD')}
-          </div>
-
-          <div class="meta">
-            Booked by<br>
-            <b>${esc(b.bookedBy)}</b>
-          </div>
-
-          <span class="badge">
-            ${esc(b.status || 'Confirmed')}
-          </span>
-
-        </div>
-      `).join('')
       : '<p>No upcoming bookings. Create your first surprise.</p>';
 }
 
-function page(n){
+
+/* =========================
+   PAGE NAVIGATION
+   MOBILE FIX INCLUDED
+========================= */
+
+function page(n) {
 
   document
     .querySelectorAll('.page')
     .forEach(
-      x => x.classList.add('hidden')
+      x =>
+        x.classList.add(
+          'hidden'
+        )
     );
 
-  $(n).classList.remove('hidden');
+  $(n).classList.remove(
+    'hidden'
+  );
 
   document
-    .querySelectorAll('nav button')
+    .querySelectorAll(
+      'nav button'
+    )
     .forEach(
       x =>
         x.classList.toggle(
@@ -465,27 +635,59 @@ function page(n){
         )
     );
 
-  if(n === 'bookings')
+  /* Close mobile sidebar */
+  const sidebar =
+    document.querySelector(
+      'aside'
+    );
+
+  if (
+    window.innerWidth <= 900 &&
+    sidebar
+  ) {
+    sidebar.classList.remove(
+      'open'
+    );
+  }
+
+  if (
+    n === 'bookings'
+  )
     renderBookings();
 
-  if(n === 'availability')
+  if (
+    n === 'availability'
+  )
     availability();
 
-  if(n === 'customers')
+  if (
+    n === 'customers'
+  )
     customers();
 
-  if(n === 'reports')
+  if (
+    n === 'reports'
+  )
     reports();
 }
 
-function renderBookings(){
+
+/* =========================
+   ALL BOOKINGS
+========================= */
+
+function renderBookings() {
 
   const q =
-    ($('filter').value || '')
-      .toLowerCase();
+    (
+      $('filter').value ||
+      ''
+    ).toLowerCase();
 
   $('allBookings').innerHTML =
+
     bookings
+
       .filter(
         b =>
           [
@@ -494,31 +696,48 @@ function renderBookings(){
             b.customer,
             b.date
           ]
-          .join(' ')
-          .toLowerCase()
-          .includes(q)
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
       )
+
       .sort(
-        (a,b) =>
-          a.date.localeCompare(b.date)
+        (a, b) =>
+          a.date.localeCompare(
+            b.date
+          )
       )
-      .map(b => `
+
+      .map(
+        b => `
         <div class="fullrow">
 
-          <b>${fmt(b.date)}</b>
+          <b>
+            ${fmt(b.date)}
+          </b>
 
           <span>
-            <b>${esc(b.type)}</b><br>
-            ${esc(b.customer || 'No customer')}
+            <b>
+              ${esc(b.type)}
+            </b>
+            <br>
+            ${esc(
+              b.customer ||
+              'No customer'
+            )}
           </span>
 
           <span>
-            ${esc(b.bookedBy)}<br>
+            ${esc(b.bookedBy)}
+            <br>
             ${esc(b.phone || '')}
           </span>
 
           <span>
-            ${esc(b.time || 'TBD')}
+            ${esc(
+              b.time ||
+              'TBD'
+            )}
           </span>
 
           <span class="badge">
@@ -542,88 +761,137 @@ function renderBookings(){
           </span>
 
         </div>
-      `)
+      `
+      )
       .join('')
-      ||
-      '<p>No bookings found.</p>';
+
+    ||
+    '<p>No bookings found.</p>';
 }
 
-window.editBooking = id => {
 
-  const b =
-    bookings.find(
-      x => x.id === id
-    );
+/* =========================
+   EDIT BOOKING
+========================= */
 
-  if(!b) return;
+window.editBooking =
+  id => {
 
-  openModal();
+    const b =
+      bookings.find(
+        x => x.id === id
+      );
 
-  $('editId').value = b.id;
-  $('type').value = b.type;
-  $('date').value = b.date;
-  $('time').value = b.time;
-  $('bookedBy').value = b.bookedBy;
-  $('customer').value = b.customer;
-  $('phone').value = b.phone;
-  $('status').value = b.status;
-  $('notes').value = b.notes;
+    if (!b)
+      return;
 
-  $('modalTitle').textContent =
-    'Edit Booking';
-};
+    openModal();
 
-window.deleteBooking = async id => {
+    $('editId').value =
+      b.id;
 
-  const b =
-    bookings.find(
-      x => x.id === id
-    );
+    $('type').value =
+      b.type;
 
-  if(!b) return;
+    $('date').value =
+      b.date;
 
-  const label =
-    `${b.type} on ${fmt(b.date)}`;
+    $('time').value =
+      b.time;
 
-  if(
-    !confirm(
-      `Delete this booking?\n\n${label}\n\nThis action cannot be undone.`
-    )
-  ){
-    return;
-  }
+    $('bookedBy').value =
+      b.bookedBy;
 
-  const {
-    error
-  } = await db
-    .from('bookings')
-    .delete()
-    .eq('id',id);
+    $('customer').value =
+      b.customer;
 
-  if(error){
-    alert(
-      'Could not delete booking: ' +
-      error.message
-    );
-    return;
-  }
+    $('phone').value =
+      b.phone;
 
-  await loadBookings();
+    $('status').value =
+      b.status;
 
-  render();
+    $('notes').value =
+      b.notes;
 
-  if(!$('bookings').classList.contains('hidden')){
-    renderBookings();
-  }
-};
+    $('modalTitle').textContent =
+      'Edit Booking';
+  };
 
-function openModal(date=''){
+
+/* =========================
+   DELETE BOOKING
+========================= */
+
+window.deleteBooking =
+  async id => {
+
+    const b =
+      bookings.find(
+        x => x.id === id
+      );
+
+    if (!b)
+      return;
+
+    const label =
+      `${b.type} on ${fmt(b.date)}`;
+
+    if (
+      !confirm(
+        `Delete this booking?\n\n${label}\n\nThis action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const {
+      error
+    } =
+      await db
+        .from('bookings')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+
+      alert(
+        'Could not delete booking: ' +
+        error.message
+      );
+
+      return;
+    }
+
+    await loadBookings();
+
+    render();
+
+    if (
+      !$('bookings')
+        .classList
+        .contains('hidden')
+    ) {
+      renderBookings();
+    }
+  };
+
+
+/* =========================
+   BOOKING MODAL
+========================= */
+
+function openModal(
+  date = ''
+) {
 
   $('bookingForm').reset();
 
   $('editId').value = '';
 
-  $('modal').classList.remove('hidden');
+  $('modal')
+    .classList
+    .remove('hidden');
 
   $('date').value =
     date || today();
@@ -631,82 +899,146 @@ function openModal(date=''){
   $('modalTitle').textContent =
     'Create New Booking';
 
-  $('formError').textContent = '';
+  $('formError').textContent =
+    '';
 }
 
-function closeModal(){
-  $('modal').classList.add('hidden');
+function closeModal() {
+
+  $('modal')
+    .classList
+    .add('hidden');
 }
 
-$('close').onclick = closeModal;
+$('close').onclick =
+  closeModal;
+
+
+/* =========================
+   SEARCH
+========================= */
 
 $('filter').oninput =
   renderBookings;
 
-$('search').oninput = e => {
-  $('filter').value =
-    e.target.value;
+$('search').oninput =
+  e => {
 
-  page('bookings');
-};
+    $('filter').value =
+      e.target.value;
 
-$('prev').onclick = () => {
-  month.setMonth(
-    month.getMonth()-1
-  );
-  calendar();
-};
+    page('bookings');
+  };
 
-$('next').onclick = () => {
-  month.setMonth(
-    month.getMonth()+1
-  );
-  calendar();
-};
 
-$('menu').onclick = () =>
-  document
-    .querySelector('aside')
-    .classList.toggle('open');
+/* =========================
+   CALENDAR NAVIGATION
+========================= */
+
+$('prev').onclick =
+  () => {
+
+    month.setMonth(
+      month.getMonth() - 1
+    );
+
+    calendar();
+  };
+
+$('next').onclick =
+  () => {
+
+    month.setMonth(
+      month.getMonth() + 1
+    );
+
+    calendar();
+  };
+
+
+/* =========================
+   MOBILE MENU
+========================= */
+
+$('menu').onclick =
+  () => {
+
+    const sidebar =
+      document.querySelector(
+        'aside'
+      );
+
+    sidebar.classList.toggle(
+      'open'
+    );
+  };
+
+
+/* =========================
+   NAVIGATION BUTTONS
+========================= */
 
 document
-  .querySelectorAll('[data-page]')
+  .querySelectorAll(
+    '[data-page]'
+  )
   .forEach(
     b =>
-      b.onclick = () =>
-        page(b.dataset.page)
+      b.onclick =
+        () =>
+          page(
+            b.dataset.page
+          )
   );
 
 document
-  .querySelectorAll('[data-add]')
+  .querySelectorAll(
+    '[data-add]'
+  )
   .forEach(
     b =>
-      b.onclick = () =>
-        openModal()
+      b.onclick =
+        () =>
+          openModal()
   );
 
-function availability(){
+
+/* =========================
+   AVAILABILITY
+========================= */
+
+function availability() {
 
   let a = [];
 
-  for(let i=0;i<21;i++){
+  for (
+    let i = 0;
+    i < 21;
+    i++
+  ) {
 
-    let d = new Date();
+    let d =
+      new Date();
 
     d.setDate(
-      d.getDate()+i
+      d.getDate() + i
     );
 
     let s =
-      d.toISOString().slice(0,10);
+      d.toISOString()
+        .slice(0, 10);
 
     a.push(`
       <button
-        class="${bookings.some(
-          b =>
-            b.date === s &&
-            b.status !== 'Cancelled'
-        ) ? 'booked' : ''}"
+        class="${
+          bookings.some(
+            b =>
+              b.date === s &&
+              b.status !== 'Cancelled'
+          )
+            ? 'booked'
+            : ''
+        }"
         onclick="showDate('${s}')">
         ${fmt(s)}
       </button>
@@ -719,82 +1051,111 @@ function availability(){
   showDate(today());
 }
 
-window.showDate = s => {
 
-  let b =
-    bookings.filter(
-      x =>
-        x.date === s &&
-        x.status !== 'Cancelled'
-    );
+window.showDate =
+  s => {
 
-  $('availInfo').innerHTML = `
-    <small>DATE STATUS</small>
+    let b =
+      bookings.filter(
+        x =>
+          x.date === s &&
+          x.status !== 'Cancelled'
+      );
 
-    <h2>${fmt(s)}</h2>
+    $('availInfo').innerHTML =
+      `
+      <small>
+        DATE STATUS
+      </small>
 
-    ${
-      b.length
-        ? `
-          <div class="card">
+      <h2>
+        ${fmt(s)}
+      </h2>
 
-            <b>🔴 Booked</b>
+      ${
+        b.length
 
-            ${b.map(x => `
+          ? `
+            <div class="card">
+
+              <b>
+                🔴 Booked
+              </b>
+
+              ${b.map(
+                x => `
+                  <p>
+                    <b>
+                      ${esc(x.type)}
+                    </b>
+                    <br>
+                    Booked by
+                    ${esc(x.bookedBy)}
+                    ·
+                    ${esc(
+                      x.time ||
+                      'TBD'
+                    )}
+                  </p>
+                `
+              ).join('')}
+
+            </div>
+          `
+
+          : `
+            <div class="card">
+
+              <b>
+                🟢 Available
+              </b>
+
               <p>
-                <b>${esc(x.type)}</b><br>
-                Booked by
-                ${esc(x.bookedBy)}
-                ·
-                ${esc(x.time || 'TBD')}
+                No booking exists for this date.
               </p>
-            `).join('')}
 
-          </div>
-        `
-        : `
-          <div class="card">
+              <button
+                class="create"
+                onclick="openModal('${s}')">
+                Book this date →
+              </button>
 
-            <b>🟢 Available</b>
+            </div>
+          `
+      }
+    `;
+  };
 
-            <p>
-              No booking exists for this date.
-            </p>
 
-            <button
-              class="create"
-              onclick="openModal('${s}')">
-              Book this date →
-            </button>
+/* =========================
+   CUSTOMERS
+========================= */
 
-          </div>
-        `
-    }
-  `;
-};
-
-function customers(){
+function customers() {
 
   let m = {};
 
-  bookings.forEach(b => {
+  bookings.forEach(
+    b => {
 
-    let k =
-      b.customer ||
-      b.bookedBy;
+      let k =
+        b.customer ||
+        b.bookedBy;
 
-    m[k] ??= {
-      name:k,
-      phone:b.phone,
-      count:0
-    };
+      m[k] ??= {
+        name: k,
+        phone: b.phone,
+        count: 0
+      };
 
-    m[k].count++;
-  });
+      m[k].count++;
+    }
+  );
 
   $('customerGrid').innerHTML =
     Object.values(m)
-      .map(c => `
+      .map(
+        c => `
         <div class="customer">
 
           <h3>
@@ -809,85 +1170,102 @@ function customers(){
           </p>
 
           <b>
-            ${c.count} booking(s)
+            ${c.count}
+            booking(s)
           </b>
 
         </div>
-      `)
+      `
+      )
       .join('')
-      ||
-      '<div class="card">No customers yet.</div>';
+
+    ||
+    '<div class="card">No customers yet.</div>';
 }
 
-function reports(){
 
-  $('reportsGrid').innerHTML = `
+/* =========================
+   REPORTS
+========================= */
 
+function reports() {
+
+  $('reportsGrid').innerHTML =
+    `
     <article>
-      <b>${bookings.length}</b>
-      <span>Total Bookings</span>
+      <b>
+        ${bookings.length}
+      </b>
+      <span>
+        Total Bookings
+      </span>
     </article>
 
     <article>
       <b>
         ${
           bookings.filter(
-            x => x.status === 'Confirmed'
+            x =>
+              x.status ===
+              'Confirmed'
           ).length
         }
       </b>
-      <span>Confirmed</span>
+      <span>
+        Confirmed
+      </span>
     </article>
 
     <article>
       <b>
         ${
           bookings.filter(
-            x => x.status === 'Pending'
+            x =>
+              x.status ===
+              'Pending'
           ).length
         }
       </b>
-      <span>Pending</span>
+      <span>
+        Pending
+      </span>
     </article>
-
   `;
-};
+}
 
 
-/*
-  SECURITY GATE
+/* =========================
+   SECURITY GATE
+========================= */
 
-  The website signs out any existing Supabase session
-  when the page loads.
-
-  This means the dashboard cannot automatically open
-  from an existing browser session.
-
-  Every fresh page load requires explicit login.
-*/
-
-(async()=>{
+(async () => {
 
   await db.auth.signOut();
 
   showLogin();
 
   db.auth.onAuthStateChange(
-    async(event, session)=>{
+    async (
+      event,
+      session
+    ) => {
 
-      if(
-        event === 'SIGNED_IN' &&
+      if (
+        event ===
+          'SIGNED_IN' &&
         session
-      ){
+      ) {
+
         await startApp();
       }
 
-      if(
-        event === 'SIGNED_OUT'
-      ){
+      if (
+        event ===
+        'SIGNED_OUT'
+      ) {
+
         showLogin();
       }
-
     }
   );
 
