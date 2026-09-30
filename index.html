@@ -1377,15 +1377,16 @@
             Start Time *
           </label>
 
-          <div class="booking-clock-wrap">
-            <input
-              id="time"
-              type="time"
-              step="60"
-              required
-            >
-            <span class="booking-clock-help">12-hour time • AM / PM</span>
-          </div>
+          <input id="time" type="hidden" required>
+
+          <div
+            id="bookingStartPicker"
+            class="custom-time-picker"
+          ></div>
+
+          <span class="booking-clock-help">
+            12-hour time • AM / PM • every minute
+          </span>
 
         </div>
 
@@ -1396,15 +1397,16 @@
             End Time *
           </label>
 
-          <div class="booking-clock-wrap">
-            <input
-              id="endTime"
-              type="time"
-              step="60"
-              required
-            >
-            <span class="booking-clock-help">12-hour time • AM / PM</span>
-          </div>
+          <input id="endTime" type="hidden" required>
+
+          <div
+            id="bookingEndPicker"
+            class="custom-time-picker"
+          ></div>
+
+          <span class="booking-clock-help">
+            12-hour time • AM / PM • every minute
+          </span>
 
         </div>
 
