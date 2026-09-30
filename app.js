@@ -123,6 +123,167 @@ function formatTimeRange(start,end) {
 }
 
 
+
+
+/* =====================================================
+   CUSTOM 12-HOUR TIME PICKER
+   Every minute, independent of browser 24-hour format
+===================================================== */
+
+function timeToPickerParts(time) {
+
+  if (!time) {
+    return { hour: "", minute: "", period: "" };
+  }
+
+  const total = timeToMinutes(time);
+  const hour24 = Math.floor(total / 60);
+  const minute = total % 60;
+
+  return {
+    hour: String(hour24 % 12 || 12),
+    minute: String(minute).padStart(2, "0"),
+    period: hour24 >= 12 ? "PM" : "AM"
+  };
+}
+
+
+function pickerPartsToTime(hour, minute, period) {
+
+  if (!hour || minute === "" || !period) {
+    return "";
+  }
+
+  let h = Number(hour);
+
+  if (period === "AM" && h === 12) h = 0;
+  if (period === "PM" && h !== 12) h += 12;
+
+  return minutesToTime(
+    h * 60 + Number(minute)
+  );
+}
+
+
+function renderCustomTimePicker(
+  containerId,
+  hiddenId,
+  value,
+  onChange
+) {
+
+  const container = $(containerId);
+  const hidden = $(hiddenId);
+
+  if (!container || !hidden) return;
+
+  const parts = timeToPickerParts(value || hidden.value);
+
+  container.innerHTML = `
+    <div class="custom-time-picker-inner">
+
+      <select class="time-hour" aria-label="Hour">
+        <option value="">HH</option>
+        ${Array.from({length: 12}, (_, i) => {
+          const h = String(i + 1);
+          return `<option value="${h}" ${parts.hour === h ? "selected" : ""}>${h}</option>`;
+        }).join("")}
+      </select>
+
+      <span class="time-colon">:</span>
+
+      <select class="time-minute" aria-label="Minute">
+        <option value="">MM</option>
+        ${Array.from({length: 60}, (_, i) => {
+          const m = String(i).padStart(2, "0");
+          return `<option value="${m}" ${parts.minute === m ? "selected" : ""}>${m}</option>`;
+        }).join("")}
+      </select>
+
+      <select class="time-period" aria-label="AM or PM">
+        <option value="">AM/PM</option>
+        <option value="AM" ${parts.period === "AM" ? "selected" : ""}>AM</option>
+        <option value="PM" ${parts.period === "PM" ? "selected" : ""}>PM</option>
+      </select>
+
+    </div>
+  `;
+
+  const hour = container.querySelector(".time-hour");
+  const minute = container.querySelector(".time-minute");
+  const period = container.querySelector(".time-period");
+
+  const update = () => {
+
+    const time = pickerPartsToTime(
+      hour.value,
+      minute.value,
+      period.value
+    );
+
+    hidden.value = time;
+
+    if (typeof onChange === "function") {
+      onChange(time);
+    }
+  };
+
+  hour.addEventListener("change", update);
+  minute.addEventListener("change", update);
+  period.addEventListener("change", update);
+}
+
+
+function setCustomTimePickerValue(
+  containerId,
+  hiddenId,
+  value,
+  onChange
+) {
+
+  const hidden = $(hiddenId);
+
+  if (hidden) hidden.value = value || "";
+
+  renderCustomTimePicker(
+    containerId,
+    hiddenId,
+    value || "",
+    onChange
+  );
+}
+
+
+function initializeBookingTimePickers() {
+
+  renderCustomTimePicker(
+    "bookingStartPicker",
+    "time",
+    $("time")?.value || "",
+    () => {
+      updateBookingTimeSummary();
+      renderCustomTimePicker(
+        "bookingEndPicker",
+        "endTime",
+        $("endTime")?.value || "",
+        updateBookingTimeSummary
+      );
+    }
+  );
+
+  renderCustomTimePicker(
+    "bookingEndPicker",
+    "endTime",
+    $("endTime")?.value || "",
+    updateBookingTimeSummary
+  );
+}
+
+
+function updateBookingTimeSummary() {
+  /* The custom picker itself is the visual summary. */
+}
+
 function timeRangesOverlap(
   startA,
   endA,
@@ -1445,6 +1606,7 @@ function openModal(
   selectedStartTime = null;
   selectedEndTime = null;
 
+  initializeBookingTimePickers();
 
 }
 
@@ -1797,7 +1959,7 @@ window.editBooking =
     $("notes").value = b.notes;
     $("formError").textContent = "";
 
-    renderBookingTimePicker();
+    initializeBookingTimePickers();
 
   };
 
@@ -2123,22 +2285,36 @@ function isAvailabilityRangeFree(
 
 function updateAvailabilityClockValues() {
 
-  const startInput =
-    $("availStartTime");
+  const startValue = selectedStartTime || "";
+  const endValue = selectedEndTime || "";
 
-  const endInput =
-    $("availEndTime");
+  const startInput = $("availStartTime");
+  const endInput = $("availEndTime");
 
-  if (startInput) {
-    startInput.value =
-      selectedStartTime || "";
-  }
+  if (startInput) startInput.value = startValue;
+  if (endInput) endInput.value = endValue;
 
-  if (endInput) {
-    endInput.value =
-      selectedEndTime || "";
-  }
+  renderCustomTimePicker(
+    "availStartPicker",
+    "availStartTime",
+    startValue,
+    time => {
+      selectedStartTime = time || null;
+      selectedEndTime = null;
+      renderAvailabilitySlots();
+    }
+  );
+
+  renderCustomTimePicker(
+    "availEndPicker",
+    "availEndTime",
+    endValue,
+    time => {
+      selectedEndTime = time || null;
+    }
+  );
 }
+
 
 
 function renderAvailabilitySlots() {
@@ -2159,16 +2335,16 @@ function renderAvailabilitySlots() {
 
       <div class="clock-field">
 
-        <label for="availStartTime">
+        <label>
           Start Time
         </label>
 
-        <input
-          id="availStartTime"
-          type="time"
-          step="60"
-          aria-label="Availability start time"
-        >
+        <input id="availStartTime" type="hidden">
+
+        <div
+          id="availStartPicker"
+          class="custom-time-picker"
+        ></div>
 
       </div>
 
@@ -2178,16 +2354,16 @@ function renderAvailabilitySlots() {
 
       <div class="clock-field">
 
-        <label for="availEndTime">
+        <label>
           End Time
         </label>
 
-        <input
-          id="availEndTime"
-          type="time"
-          step="60"
-          aria-label="Availability end time"
-        >
+        <input id="availEndTime" type="hidden">
+
+        <div
+          id="availEndPicker"
+          class="custom-time-picker"
+        ></div>
 
       </div>
 
