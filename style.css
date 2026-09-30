@@ -2926,3 +2926,159 @@ main {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* =====================================================
+   AVAILABILITY CLOCK CONTROLS
+   Exact-style controls above the 30-minute grid
+===================================================== */
+
+.availability-clock-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid rgba(216,168,102,.14);
+  border-radius: 18px;
+  background: rgba(255,255,255,.025);
+}
+
+.availability-clock-panel .clock-field {
+  min-width: 0;
+}
+
+.availability-clock-panel .clock-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #cbbdb7;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.availability-clock-panel .clock-field input,
+.booking-clock-wrap input {
+  width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  color: #fff;
+  outline: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color-scheme: dark;
+}
+
+.availability-clock-panel .clock-field input:focus,
+.booking-clock-wrap input:focus {
+  border-color: rgba(216,168,102,.65);
+  box-shadow: 0 0 0 3px rgba(216,168,102,.07);
+}
+
+.clock-arrow {
+  padding-bottom: 14px;
+  color: var(--gold);
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.availability-check-btn {
+  min-height: 52px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #b5163d, #82132f);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(181,22,61,.18);
+}
+
+.availability-check-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.availability-clock-note {
+  margin: 10px 2px 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.availability-status {
+  min-height: 0;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.availability-status.available,
+.availability-status.unavailable {
+  padding: 12px 14px;
+  border-radius: 11px;
+}
+
+.availability-status.available {
+  border: 1px solid rgba(72,180,122,.25);
+  background: rgba(72,180,122,.08);
+  color: #9fe0b8;
+}
+
+.availability-status.unavailable {
+  border: 1px solid rgba(190,45,64,.25);
+  background: rgba(190,45,64,.08);
+  color: #e59aa5;
+}
+
+/* =====================================================
+   BOOKING MODAL — NATIVE EVERY-MINUTE CLOCK
+===================================================== */
+
+.booking-clock-wrap {
+  width: 100%;
+}
+
+.booking-clock-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Hide the old modal button-grid styling if any old markup remains. */
+.booking-time-grid,
+.booking-time-summary {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .availability-clock-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .availability-clock-panel .clock-arrow {
+    display: none;
+  }
+
+  .availability-check-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .availability-clock-panel {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .availability-check-btn {
+    grid-column: auto;
+  }
+}
