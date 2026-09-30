@@ -8,7 +8,7 @@ const $ = x => document.getElementById(x);
 const today = () => new Date().toISOString().slice(0,10);
 const fmt = s => new Date(s + 'T00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const icons = {'Anniversary Surprise':'♥','Proposal Surprise':'💍','Romantic Setup':'♥','Welcome Surprise':'✦','Custom Event':'✿'};
+const icons = {'Anniversary Surprise':'♥','Birthday Surprise':'🎂','Proposal Surprise':'💍','Romantic Setup':'♥','Welcome Surprise':'✦','Custom Event':'✿'};
 
 function showLogin(){ $('login').classList.remove('hidden'); $('app').classList.add('hidden'); }
 function showApp(){ $('login').classList.add('hidden'); $('app').classList.remove('hidden'); }
