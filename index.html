@@ -1037,7 +1037,8 @@
           </h1>
 
           <p>
-            Select an available time range.
+            Tap a time to start, then tap another to set how long you need.
+            Stay 3–4 hours if your event needs it.
           </p>
 
         </div>
@@ -1370,34 +1371,49 @@
         </div>
 
 
-        <div class="field">
+        <div class="field full">
 
           <label>
             Start Time *
           </label>
 
-          <select
+          <input
             id="time"
+            type="hidden"
             required
           >
-            <option value="">Select start time</option>
-          </select>
+
+          <div
+            id="bookingStartTimes"
+            class="booking-time-grid"
+          ></div>
 
         </div>
 
 
-        <div class="field">
+        <div class="field full">
 
           <label>
             End Time *
           </label>
 
-          <select
+          <input
             id="endTime"
+            type="hidden"
             required
           >
-            <option value="">Select end time</option>
-          </select>
+
+          <div
+            id="bookingEndTimes"
+            class="booking-time-grid"
+          ></div>
+
+          <div
+            id="bookingTimeSummary"
+            class="booking-time-summary"
+          >
+            Select a start time, then select an end time.
+          </div>
 
         </div>
 
