@@ -65,11 +65,14 @@ function timeToMinutes(time) {
 
 function minutesToTime(minutes) {
 
-  const h =
-    Math.floor(minutes / 60);
+  minutes = minutes % (24 * 60);
 
-  const m =
-    minutes % 60;
+  if (minutes < 0) {
+    minutes += 24 * 60;
+  }
+
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
 
   return (
     String(h).padStart(2,"0") +
@@ -136,17 +139,14 @@ function timeRangesOverlap(
     return false;
   }
 
-  const aStart =
-    timeToMinutes(startA);
+  let aStart = timeToMinutes(startA);
+  let aEnd = timeToMinutes(endA);
+  let bStart = timeToMinutes(startB);
+  let bEnd = timeToMinutes(endB);
 
-  const aEnd =
-    timeToMinutes(endA);
-
-  const bStart =
-    timeToMinutes(startB);
-
-  const bEnd =
-    timeToMinutes(endB);
+  // Support overnight bookings such as 10:00 PM → 1:00 AM.
+  if (aEnd <= aStart) aEnd += 24 * 60;
+  if (bEnd <= bStart) bEnd += 24 * 60;
 
   return (
     aStart < bEnd &&
@@ -810,6 +810,14 @@ function eventIcon(type) {
   if (
     type
       .toLowerCase()
+      .includes("bride")
+  ) {
+    return "👰";
+  }
+
+  if (
+    type
+      .toLowerCase()
       .includes("proposal")
   ) {
     return "💍";
@@ -1384,16 +1392,11 @@ $("search")
         value;
 
 
-      if (
-        value &&
-        !$("bookings")
-          .classList
-          .contains("hidden")
-      ) {
-
-        renderBookings();
-
+      if (value) {
+        showPage("bookings");
       }
+
+      renderBookings();
 
     }
   );
@@ -1595,17 +1598,24 @@ async function saveBooking(event) {
     );
 
 
-  if (end <= start) {
+  let normalizedEnd = end;
+
+  // Allow overnight bookings such as 10:00 PM → 1:00 AM.
+  if (normalizedEnd <= start) {
+    normalizedEnd += 24 * 60;
+  }
+
+  if (normalizedEnd <= start) {
 
     $("formError").textContent =
-      "End time must be later than start time.";
+      "Please select a valid end time.";
 
     return;
   }
 
 
   if (
-    end - start < 60
+    normalizedEnd - start < 60
   ) {
 
     $("formError").textContent =
@@ -2065,55 +2075,54 @@ function renderAvailabilityDates() {
    CHECK BOOKED TIME
 ===================================================== */
 
-function isTimeBooked(
-  date,
-  time
-) {
+function getPreviousDateString(dateString) {
 
-  const target =
-    timeToMinutes(time);
+  const d = new Date(dateString + "T00:00:00");
+  d.setDate(d.getDate() - 1);
 
-
-  return bookings.some(
-    b => {
-
-      if (
-        b.date !== date ||
-        b.status === "Cancelled"
-      ) {
-
-        return false;
-
-      }
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2,"0"),
+    String(d.getDate()).padStart(2,"0")
+  ].join("-");
+}
 
 
-      if (!b.time) {
-        return false;
-      }
+function isTimeBooked(date, time) {
 
+  const target = timeToMinutes(time);
+  const previousDate = getPreviousDateString(date);
 
-      const start =
-        timeToMinutes(
-          b.time
-        );
+  return bookings.some(b => {
 
-
-      const end =
-        b.endTime
-          ? timeToMinutes(
-              b.endTime
-            )
-          : start + 30;
-
-
-      return (
-        target >= start &&
-        target < end
-      );
-
+    if (b.status === "Cancelled" || !b.time) {
+      return false;
     }
-  );
 
+    let start = timeToMinutes(b.time);
+    let end = b.endTime
+      ? timeToMinutes(b.endTime)
+      : start + 30;
+
+    // Normal same-day booking.
+    if (b.date === date) {
+
+      if (end <= start) {
+        // Overnight booking: only the part after midnight
+        // belongs to the following calendar day.
+        return target < end;
+      }
+
+      return target >= start && target < end;
+    }
+
+    // Early-morning part of an overnight booking from yesterday.
+    if (b.date === previousDate && end <= start) {
+      return target < end;
+    }
+
+    return false;
+  });
 }
 
 
@@ -2152,13 +2161,16 @@ function renderAvailabilitySlots() {
 
 
   /*
-    9 AM to 9 PM.
+    10 AM to 1 AM next day.
     30-minute intervals.
+
+    25 * 60 represents 1:00 AM on the
+    following day in the availability timeline.
   */
 
   for (
-    let minutes = 9 * 60;
-    minutes < 21 * 60;
+    let minutes = 10 * 60;
+    minutes <= 25 * 60;
     minutes += 30
   ) {
 
@@ -2301,16 +2313,20 @@ function renderAvailabilitySlots() {
           );
 
 
-        if (
-          time &&
-          timeToMinutes(time) <=
-            timeToMinutes(
-              selectedStartTime
-            )
-        ) {
+        if (time) {
 
-          button.disabled =
-            true;
+          let startMinutes = timeToMinutes(selectedStartTime);
+          let endMinutes = timeToMinutes(time);
+
+          // A displayed 12 AM / 1 AM slot is the next-day portion
+          // when the selected start is in the evening.
+          if (endMinutes <= startMinutes && startMinutes >= 10 * 60) {
+            endMinutes += 24 * 60;
+          }
+
+          if (endMinutes <= startMinutes) {
+            button.disabled = true;
+          }
 
         }
 
@@ -2400,32 +2416,20 @@ window.selectAvailabilityTime =
     }
 
 
-    const start =
-      timeToMinutes(
-        selectedStartTime
-      );
+    const start = timeToMinutes(selectedStartTime);
+    let end = timeToMinutes(time);
 
+    // Allow an end time after midnight, e.g. 10 PM → 1 AM.
+    if (end <= start && start >= 10 * 60) {
+      end += 24 * 60;
+    }
 
-    const end =
-      timeToMinutes(
-        time
-      );
+    if (end <= start) {
 
-
-    if (
-      end <= start
-    ) {
-
-      selectedStartTime =
-        time;
-
-      selectedEndTime =
-        null;
-
+      selectedStartTime = time;
+      selectedEndTime = null;
       renderAvailability();
-
       return;
-
     }
 
 
