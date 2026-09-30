@@ -1,119 +1,416 @@
-/* =====================================================
-   DREAM TOWN SURPRISES
-   APP.JS
-===================================================== */
-
-const { createClient } = supabase;
-
-const db = createClient(
+const db = window.supabase.createClient(
   window.DTS_SUPABASE_URL,
   window.DTS_SUPABASE_PUBLISHABLE_KEY
 );
 
 
 /* =====================================================
-   GLOBAL STATE
+   GLOBAL
 ===================================================== */
 
+let currentUser = null;
+let staffProfile = null;
 let bookings = [];
 
-let month = new Date();
-month.setDate(1);
+let calendarDate = new Date();
 
-let currentUser = null;
+let selectedAvailabilityDate = null;
 
-let availabilityDate = today();
-
-let rangeStart = null;
-let rangeEnd = null;
+let selectedStartTime = null;
+let selectedEndTime = null;
 
 
 /* =====================================================
    HELPERS
 ===================================================== */
 
-const $ = id => document.getElementById(id);
+const $ = id =>
+  document.getElementById(id);
 
-function today() {
 
-  const d = new Date();
+function escapeHTML(value) {
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+/* =====================================================
+   TIME HELPERS
+===================================================== */
+
+function timeToMinutes(time) {
+
+  if (!time) {
+    return 0;
+  }
+
+  const parts =
+    time.split(":");
 
   return (
-    d.getFullYear() +
-    '-' +
-    String(d.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(d.getDate()).padStart(2, '0')
+    Number(parts[0]) * 60 +
+    Number(parts[1])
   );
 }
 
 
-function fmt(date) {
+function minutesToTime(minutes) {
 
-  if (!date) return '';
+  const h =
+    Math.floor(minutes / 60);
 
-  return new Date(
-    date + 'T00:00:00'
-  ).toLocaleDateString(
-    'en-IN',
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+  const m =
+    minutes % 60;
+
+  return (
+    String(h).padStart(2,"0") +
+    ":" +
+    String(m).padStart(2,"0")
+  );
+}
+
+
+function formatTime(time) {
+
+  if (!time) {
+    return "TBD";
+  }
+
+  const parts =
+    time.split(":");
+
+  const hour =
+    Number(parts[0]);
+
+  const minute =
+    parts[1];
+
+  const suffix =
+    hour >= 12
+      ? "PM"
+      : "AM";
+
+  const displayHour =
+    hour % 12 || 12;
+
+  return `${displayHour}:${minute} ${suffix}`;
+}
+
+
+function formatTimeRange(start,end) {
+
+  if (!start) {
+    return "TBD";
+  }
+
+  if (!end) {
+    return formatTime(start);
+  }
+
+  return `${formatTime(start)} – ${formatTime(end)}`;
+}
+
+
+function timeRangesOverlap(
+  startA,
+  endA,
+  startB,
+  endB
+) {
+
+  if (
+    !startA ||
+    !endA ||
+    !startB ||
+    !endB
+  ) {
+    return false;
+  }
+
+  const aStart =
+    timeToMinutes(startA);
+
+  const aEnd =
+    timeToMinutes(endA);
+
+  const bStart =
+    timeToMinutes(startB);
+
+  const bEnd =
+    timeToMinutes(endB);
+
+  return (
+    aStart < bEnd &&
+    aEnd > bStart
+  );
+}
+
+
+/* =====================================================
+   TIMEZONE GREETING
+===================================================== */
+
+function updateGreeting() {
+
+  const greeting =
+    $("greeting");
+
+  if (!greeting) {
+    return;
+  }
+
+  /*
+    Uses the browser/device local timezone.
+    India = Asia/Kolkata automatically.
+  */
+
+  const hour =
+    new Date().getHours();
+
+
+  let text;
+
+
+  if (
+    hour >= 5 &&
+    hour < 12
+  ) {
+
+    text =
+      "GOOD MORNING";
+
+  }
+
+  else if (
+    hour >= 12 &&
+    hour < 17
+  ) {
+
+    text =
+      "GOOD AFTERNOON";
+
+  }
+
+  else if (
+    hour >= 17 &&
+    hour < 21
+  ) {
+
+    text =
+      "GOOD EVENING";
+
+  }
+
+  else {
+
+    text =
+      "GOOD NIGHT";
+
+  }
+
+
+  greeting.textContent =
+    text;
+}
+
+
+updateGreeting();
+
+
+setInterval(
+  updateGreeting,
+  60 * 1000
+);
+
+
+/* =====================================================
+   AUTH UI
+===================================================== */
+
+function showLogin() {
+
+  $("login")
+    .classList
+    .remove("hidden");
+
+  $("app")
+    .classList
+    .add("hidden");
+}
+
+
+function showApp() {
+
+  $("login")
+    .classList
+    .add("hidden");
+
+  $("app")
+    .classList
+    .remove("hidden");
+}
+
+
+function showLoginPanel() {
+
+  $("loginPanel")
+    .classList
+    .remove("hidden");
+
+  $("signupPanel")
+    .classList
+    .add("hidden");
+}
+
+
+function showSignupPanel() {
+
+  $("loginPanel")
+    .classList
+    .add("hidden");
+
+  $("signupPanel")
+    .classList
+    .remove("hidden");
+}
+
+
+/* =====================================================
+   INITIAL AUTH
+===================================================== */
+
+async function initializeAuth() {
+
+  /*
+    Force fresh login on page load.
+    Remove these two lines if you later want
+    persistent login sessions.
+  */
+
+  await db.auth.signOut();
+
+  showLogin();
+
+
+  db.auth.onAuthStateChange(
+    async (event,session) => {
+
+      if (
+        event === "SIGNED_IN" &&
+        session
+      ) {
+
+        await handleSignedIn(
+          session.user
+        );
+
+      }
+
+      if (
+        event === "SIGNED_OUT"
+      ) {
+
+        currentUser = null;
+
+        staffProfile = null;
+
+        bookings = [];
+
+        showLogin();
+
+      }
+
     }
   );
 }
 
 
-function esc(value) {
+async function handleSignedIn(user) {
 
-  return String(value ?? '').replace(
-    /[&<>'"]/g,
-    c => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      "'": '&#39;',
-      '"': '&quot;'
-    }[c])
-  );
-}
+  currentUser =
+    user;
 
 
-const icons = {
-
-  'Anniversary Surprise': '♥',
-
-  'Birthday Surprise': '🎂',
-
-  'Proposal Surprise': '💍',
-
-  'Romantic Setup': '♥',
-
-  'Welcome Surprise': '✦',
-
-  'Custom Event': '✿'
-
-};
+  const { data,error } =
+    await db
+      .from("staff")
+      .select("user_id,full_name")
+      .eq("user_id",user.id)
+      .maybeSingle();
 
 
-function formatTime(time) {
+  if (error) {
 
-  if (!time) return 'TBD';
+    console.error(error);
 
-  const [h, m] = time.split(':');
+    await db.auth.signOut();
 
-  const hour = Number(h);
+    $("loginError").textContent =
+      "Unable to verify your account.";
 
-  const suffix =
-    hour >= 12
-      ? 'PM'
-      : 'AM';
+    return;
+  }
 
-  const displayHour =
-    hour % 12 || 12;
 
-  return `${displayHour}:${m} ${suffix}`;
+  if (!data) {
+
+    await db.auth.signOut();
+
+    $("loginError").textContent =
+      "Your account is not approved for this dashboard.";
+
+    return;
+  }
+
+
+  staffProfile =
+    data;
+
+
+  showApp();
+
+
+  const name =
+    data.full_name ||
+    user.email?.split("@")[0] ||
+    "Admin";
+
+
+  $("profileName").textContent =
+    name;
+
+  $("welcomeName").textContent =
+    name;
+
+
+  const initials =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0,2)
+      .map(x => x[0])
+      .join("")
+      .toUpperCase();
+
+
+  $("profileInitials").textContent =
+    initials || "DT";
+
+
+  await loadBookings();
+
+  renderAll();
+
+  updateGreeting();
 }
 
 
@@ -121,312 +418,208 @@ function formatTime(time) {
    LOGIN
 ===================================================== */
 
-function showLogin() {
+$("loginForm")
+  .addEventListener(
+    "submit",
+    async event => {
 
-  $('login').classList.remove('hidden');
-
-  $('app').classList.add('hidden');
-}
-
-
-function showApp() {
-
-  $('login').classList.add('hidden');
-
-  $('app').classList.remove('hidden');
-}
+      event.preventDefault();
 
 
-function setAuthMessage(
-  message,
-  error = true
-) {
-
-  $('loginError').textContent =
-    message || '';
-
-  $('loginError').style.color =
-    error
-      ? ''
-      : '#72a879';
-}
+      $("loginError")
+        .textContent =
+        "Signing in…";
 
 
-/* =====================================================
-   LOGIN FORM
-===================================================== */
+      const email =
+        $("user")
+          .value
+          .trim();
 
-$('loginForm').onsubmit =
-  async e => {
+      const password =
+        $("pass")
+          .value;
 
-    e.preventDefault();
 
-    setAuthMessage(
-      'Signing in…',
-      false
-    );
+      const { data,error } =
+        await db.auth.signInWithPassword({
 
-    const email =
-      $('user').value.trim();
+          email,
+          password
 
-    const password =
-      $('pass').value;
+        });
 
-    const { error } =
-      await db.auth.signInWithPassword({
-        email,
-        password
-      });
 
-    if (error) {
+      if (error) {
 
-      setAuthMessage(
-        error.message ||
-        'Incorrect email or password.'
+        $("loginError")
+          .textContent =
+          error.message;
+
+        return;
+      }
+
+
+      await handleSignedIn(
+        data.user
       );
 
-      return;
     }
-
-    await startApp();
-  };
+  );
 
 
-/* =====================================================
-   LOGOUT
-===================================================== */
+$("logout")
+  .addEventListener(
+    "click",
+    async () => {
 
-$('logout').onclick =
-  async () => {
+      await db.auth.signOut();
 
-    await db.auth.signOut();
+    }
+  );
 
-    showLogin();
-  };
+
+$("showSignup")
+  .addEventListener(
+    "click",
+    showSignupPanel
+  );
+
+
+$("showLogin")
+  .addEventListener(
+    "click",
+    showLoginPanel
+  );
 
 
 /* =====================================================
    FORGOT PASSWORD
 ===================================================== */
 
-$('forgot').onclick =
-  async () => {
+$("forgot")
+  .addEventListener(
+    "click",
+    async () => {
 
-    const email =
-      $('user').value.trim();
+      const email =
+        $("user")
+          .value
+          .trim();
 
-    if (!email) {
 
-      setAuthMessage(
-        'Enter your email first, then click Forgot password.'
-      );
+      if (!email) {
 
-      return;
+        $("loginError").textContent =
+          "Enter your email first.";
+
+        return;
+      }
+
+
+      const redirect =
+        window.location.origin +
+        window.location.pathname;
+
+
+      const { error } =
+        await db.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo: redirect
+          }
+        );
+
+
+      $("loginError").textContent =
+        error
+          ? error.message
+          : "Password reset email sent.";
+
     }
-
-    const { error } =
-      await db.auth.resetPasswordForEmail(
-        email,
-        {
-          redirectTo:
-            window.location.origin +
-            window.location.pathname
-        }
-      );
-
-    setAuthMessage(
-      error
-        ? error.message
-        : 'Password reset email sent. Check your inbox.',
-      !error
-    );
-  };
+  );
 
 
 /* =====================================================
    SIGNUP
 ===================================================== */
 
-$('showSignup').onclick =
-  () => {
+$("signupForm")
+  .addEventListener(
+    "submit",
+    async event => {
 
-    $('loginPanel')
-      .classList
-      .add('hidden');
-
-    $('signupPanel')
-      .classList
-      .remove('hidden');
-
-    setAuthMessage('');
-  };
+      event.preventDefault();
 
 
-$('showLogin').onclick =
-  () => {
-
-    $('signupPanel')
-      .classList
-      .add('hidden');
-
-    $('loginPanel')
-      .classList
-      .remove('hidden');
-
-    setAuthMessage('');
-  };
+      $("signupError")
+        .textContent =
+        "Creating account…";
 
 
-$('signupForm').onsubmit =
-  async e => {
+      const name =
+        $("signupName")
+          .value
+          .trim();
 
-    e.preventDefault();
+      const email =
+        $("signupEmail")
+          .value
+          .trim();
 
-    const name =
-      $('signupName')
-        .value
-        .trim();
+      const password =
+        $("signupPass")
+          .value;
 
-    const email =
-      $('signupEmail')
-        .value
-        .trim();
 
-    const password =
-      $('signupPass')
-        .value;
+      if (password.length < 8) {
 
-    if (password.length < 8) {
+        $("signupError")
+          .textContent =
+          "Password must contain at least 8 characters.";
 
-      $('signupError').textContent =
-        'Password must be at least 8 characters.';
+        return;
+      }
 
-      return;
-    }
 
-    $('signupError').textContent =
-      'Creating account…';
+      const { data,error } =
+        await db.auth.signUp({
 
-    const { data, error } =
-      await db.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name
+          email,
+          password,
+
+          options: {
+            data: {
+              full_name: name
+            }
           }
-        }
-      });
 
-    if (error) {
+        });
 
-      $('signupError').textContent =
-        error.message;
 
-      return;
+      if (error) {
+
+        $("signupError")
+          .textContent =
+          error.message;
+
+        return;
+      }
+
+
+      if (data.user) {
+
+        $("signupError")
+          .textContent =
+          "Account created. Ask the owner to approve your account.";
+
+        $("signupForm")
+          .reset();
+
+      }
+
     }
-
-    if (data.session) {
-
-      $('signupError').textContent =
-        'Account created. Loading dashboard…';
-
-      await startApp();
-
-    } else {
-
-      $('signupError').textContent =
-        'Account created. Confirm your email if required, then sign in. New staff accounts must be authorized by the owner.';
-    }
-  };
-
-
-/* =====================================================
-   START APP
-===================================================== */
-
-async function startApp() {
-
-  const {
-    data: {
-      user
-    }
-  } = await db.auth.getUser();
-
-  if (!user) {
-
-    showLogin();
-
-    return;
-  }
-
-
-  const {
-    data: staff,
-    error
-  } =
-    await db
-      .from('staff')
-      .select(
-        'user_id,full_name'
-      )
-      .eq(
-        'user_id',
-        user.id
-      )
-      .maybeSingle();
-
-
-  if (error || !staff) {
-
-    await db.auth.signOut();
-
-    setAuthMessage(
-      'This account is not authorized for Dream Town Surprises yet. Ask the owner to add it as staff.'
-    );
-
-    showLogin();
-
-    return;
-  }
-
-
-  currentUser = {
-
-    ...user,
-
-    full_name:
-      staff.full_name ||
-      user.user_metadata?.full_name ||
-      'Team Member'
-
-  };
-
-
-  $('welcomeName').textContent =
-    currentUser.full_name
-      .split(' ')[0];
-
-
-  $('profileName').textContent =
-    currentUser.full_name;
-
-
-  $('profileInitials').textContent =
-    currentUser.full_name
-      .split(/\s+/)
-      .map(x => x[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-
-
-  showApp();
-
-  await loadBookings();
-
-  render();
-}
+  );
 
 
 /* =====================================================
@@ -435,34 +628,24 @@ async function startApp() {
 
 async function loadBookings() {
 
-  const {
-    data,
-    error
-  } =
+  if (!currentUser) {
+    return;
+  }
+
+
+  const { data,error } =
     await db
-      .from('bookings')
-      .select('*')
-      .order(
-        'event_date',
-        {
-          ascending: true
-        }
-      )
-      .order(
-        'event_time',
-        {
-          ascending: true
-        }
-      );
+      .from("bookings")
+      .select("*")
+      .order("event_date",{ ascending:true })
+      .order("event_time",{ ascending:true });
 
 
   if (error) {
 
-    console.error(error);
-
-    alert(
-      'Could not load bookings: ' +
-      error.message
+    console.error(
+      "Booking load error:",
+      error
     );
 
     return;
@@ -470,81 +653,904 @@ async function loadBookings() {
 
 
   bookings =
-    (data || []).map(
-      b => ({
+    (data || []).map(row => ({
 
-        id: b.id,
+      id:
+        row.id,
 
-        type:
-          b.event_type,
+      date:
+        row.event_date,
 
-        date:
-          b.event_date,
+      time:
+        row.event_time || "",
 
-        time:
-          b.event_time || '',
+      endTime:
+        row.event_end_time || "",
 
-        bookedBy:
-          b.booked_by,
+      type:
+        row.event_type,
 
-        customer:
-          b.customer_name || '',
+      customer:
+        row.customer_name || "",
 
-        phone:
-          b.phone || '',
+      phone:
+        row.phone || "",
 
-        status:
-          b.status,
+      bookedBy:
+        row.booked_by,
 
-        notes:
-          b.notes || ''
+      notes:
+        row.notes || "",
+
+      status:
+        row.status,
+
+      createdBy:
+        row.created_by,
+
+      createdAt:
+        row.created_at
+
+    }));
+
+}
+
+
+/* =====================================================
+   RENDER ALL
+===================================================== */
+
+function renderAll() {
+
+  renderStats();
+
+  renderUpcoming();
+
+  renderCalendar();
+
+  renderBookings();
+
+  renderAvailability();
+
+  renderCustomers();
+
+  renderReports();
+
+}
+
+
+/* =====================================================
+   STATS
+===================================================== */
+
+function renderStats() {
+
+  const now =
+    new Date();
+
+  const year =
+    now.getFullYear();
+
+  const month =
+    now.getMonth();
+
+
+  const active =
+    bookings.filter(
+      b =>
+        b.status !== "Cancelled"
+    );
+
+
+  const thisMonth =
+    active.filter(b => {
+
+      const d =
+        new Date(
+          b.date + "T00:00:00"
+        );
+
+      return (
+        d.getFullYear() === year &&
+        d.getMonth() === month
+      );
+
+    });
+
+
+  const upcoming =
+    active.filter(b => {
+
+      return (
+        new Date(
+          b.date + "T23:59:59"
+        ) >= now
+      );
+
+    });
+
+
+  const customerSet =
+    new Set(
+      active
+        .map(b => b.phone || b.customer)
+        .filter(Boolean)
+    );
+
+
+  $("total").textContent =
+    active.length;
+
+  $("month").textContent =
+    thisMonth.length;
+
+  $("upcoming").textContent =
+    upcoming.length;
+
+  $("customers").textContent =
+    customerSet.size;
+
+}
+
+
+/* =====================================================
+   EVENT ICON
+===================================================== */
+
+function eventIcon(type) {
+
+  if (
+    type
+      .toLowerCase()
+      .includes("birthday")
+  ) {
+    return "🎂";
+  }
+
+  if (
+    type
+      .toLowerCase()
+      .includes("proposal")
+  ) {
+    return "💍";
+  }
+
+  if (
+    type
+      .toLowerCase()
+      .includes("anniversary")
+  ) {
+    return "♥";
+  }
+
+  if (
+    type
+      .toLowerCase()
+      .includes("romantic")
+  ) {
+    return "♥";
+  }
+
+  if (
+    type
+      .toLowerCase()
+      .includes("welcome")
+  ) {
+    return "✦";
+  }
+
+  return "✿";
+}
+
+
+/* =====================================================
+   UPCOMING
+===================================================== */
+
+function renderUpcoming() {
+
+  const container =
+    $("upcomingList");
+
+
+  const today =
+    new Date();
+
+  today.setHours(
+    0,0,0,0
+  );
+
+
+  const list =
+    bookings
+
+      .filter(b =>
+        b.status !== "Cancelled"
+      )
+
+      .filter(b => {
+
+        const d =
+          new Date(
+            b.date + "T00:00:00"
+          );
+
+        return d >= today;
 
       })
-    );
+
+      .sort((a,b) => {
+
+        const aa =
+          `${a.date} ${a.time}`;
+
+        const bb =
+          `${b.date} ${b.time}`;
+
+        return aa.localeCompare(bb);
+
+      })
+
+      .slice(0,5);
+
+
+  if (!list.length) {
+
+    container.innerHTML =
+      `<div class="empty">
+        No upcoming bookings.
+      </div>`;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    list.map(b => {
+
+      return `
+
+        <div class="booking">
+
+          <div class="thumb">
+            ${eventIcon(b.type)}
+          </div>
+
+          <div>
+
+            <b>
+              ${escapeHTML(
+                b.type
+              )}
+            </b>
+
+            <div class="sub">
+              ${escapeHTML(
+                b.customer || "Customer not added"
+              )}
+            </div>
+
+          </div>
+
+          <div class="meta">
+
+            <b>
+              ${escapeHTML(
+                formatDate(b.date)
+              )}
+            </b>
+
+            <br>
+
+            ${escapeHTML(
+              formatTimeRange(
+                b.time,
+                b.endTime
+              )
+            )}
+
+          </div>
+
+          <div class="meta">
+
+            Booked by<br>
+
+            <b>
+              ${escapeHTML(
+                b.bookedBy
+              )}
+            </b>
+
+          </div>
+
+          <div>
+
+            <span class="badge">
+              ${escapeHTML(
+                b.status
+              )}
+            </span>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+
 }
+
+
+/* =====================================================
+   DATE FORMAT
+===================================================== */
+
+function formatDate(dateString) {
+
+  if (!dateString) {
+    return "";
+  }
+
+  const d =
+    new Date(
+      dateString + "T00:00:00"
+    );
+
+
+  return d.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
+}
+
+
+/* =====================================================
+   CALENDAR
+===================================================== */
+
+function renderCalendar() {
+
+  const year =
+    calendarDate.getFullYear();
+
+  const month =
+    calendarDate.getMonth();
+
+
+  $("calTitle").textContent =
+    calendarDate.toLocaleDateString(
+      "en-IN",
+      {
+        month: "long",
+        year: "numeric"
+      }
+    );
+
+
+  const first =
+    new Date(
+      year,
+      month,
+      1
+    );
+
+
+  const last =
+    new Date(
+      year,
+      month + 1,
+      0
+    );
+
+
+  const container =
+    $("days");
+
+
+  container.innerHTML = "";
+
+
+  for (
+    let i = 0;
+    i < first.getDay();
+    i++
+  ) {
+
+    const blank =
+      document.createElement("span");
+
+    container.appendChild(blank);
+
+  }
+
+
+  for (
+    let day = 1;
+    day <= last.getDate();
+    day++
+  ) {
+
+    const button =
+      document.createElement("button");
+
+
+    const date =
+      `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+
+    button.textContent =
+      day;
+
+
+    const today =
+      new Date();
+
+
+    if (
+      today.getFullYear() === year &&
+      today.getMonth() === month &&
+      today.getDate() === day
+    ) {
+
+      button.classList.add("today");
+
+    }
+
+
+    if (
+      bookings.some(
+        b =>
+          b.date === date &&
+          b.status !== "Cancelled"
+      )
+    ) {
+
+      button.classList.add("booked");
+
+    }
+
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        openModal(
+          date
+        );
+
+      }
+    );
+
+
+    container.appendChild(button);
+
+  }
+
+}
+
+
+$("prev")
+  .addEventListener(
+    "click",
+    () => {
+
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() - 1,
+          1
+        );
+
+      renderCalendar();
+
+    }
+  );
+
+
+$("next")
+  .addEventListener(
+    "click",
+    () => {
+
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() + 1,
+          1
+        );
+
+      renderCalendar();
+
+    }
+  );
+
+
+/* =====================================================
+   BOOKINGS TABLE
+===================================================== */
+
+function renderBookings() {
+
+  const container =
+    $("allBookings");
+
+
+  const search =
+    (
+      $("filter")?.value ||
+      $("search")?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  let list =
+    [...bookings];
+
+
+  if (search) {
+
+    list =
+      list.filter(b => {
+
+        const searchable = [
+
+          b.type,
+          b.bookedBy,
+          b.customer,
+          b.phone,
+          b.date,
+          b.time,
+          b.endTime,
+          formatTime(b.time),
+          formatTime(b.endTime),
+          b.status
+
+        ]
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchable.includes(
+          search
+        );
+
+      });
+
+  }
+
+
+  list.sort((a,b) => {
+
+    const aa =
+      `${a.date} ${a.time}`;
+
+    const bb =
+      `${b.date} ${b.time}`;
+
+    return bb.localeCompare(aa);
+
+  });
+
+
+  if (!list.length) {
+
+    container.innerHTML =
+      `<div class="empty">
+        No bookings found.
+      </div>`;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    list.map(b => {
+
+      return `
+
+        <div class="fullrow">
+
+          <div>
+
+            <strong>
+              ${escapeHTML(
+                formatDate(b.date)
+              )}
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <strong>
+              ${escapeHTML(
+                b.type
+              )}
+            </strong>
+
+            <div class="sub">
+
+              ${escapeHTML(
+                b.customer ||
+                "No customer"
+              )}
+
+            </div>
+
+          </div>
+
+
+          <div>
+
+            <strong>
+              ${escapeHTML(
+                b.bookedBy
+              )}
+            </strong>
+
+            <div class="sub">
+
+              ${escapeHTML(
+                b.phone ||
+                "No phone"
+              )}
+
+            </div>
+
+          </div>
+
+
+          <div>
+
+            ${escapeHTML(
+              formatTimeRange(
+                b.time,
+                b.endTime
+              )
+            )}
+
+          </div>
+
+
+          <div>
+
+            <span class="badge">
+
+              ${escapeHTML(
+                b.status
+              )}
+
+            </span>
+
+          </div>
+
+
+          <div class="row-actions">
+
+            <button
+              class="mini"
+              onclick="editBooking('${b.id}')"
+            >
+              Edit
+            </button>
+
+            <button
+              class="mini danger"
+              onclick="deleteBooking('${b.id}')"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+$("filter")
+  .addEventListener(
+    "input",
+    renderBookings
+  );
+
+
+$("search")
+  .addEventListener(
+    "input",
+    event => {
+
+      const value =
+        event.target.value;
+
+
+      $("filter").value =
+        value;
+
+
+      if (
+        value &&
+        !$("bookings")
+          .classList
+          .contains("hidden")
+      ) {
+
+        renderBookings();
+
+      }
+
+    }
+  );
+
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+function openModal(
+  selectedDate = ""
+) {
+
+  $("modal")
+    .classList
+    .remove("hidden");
+
+
+  $("bookingForm")
+    .reset();
+
+
+  $("editId").value = "";
+
+
+  $("modalTitle").textContent =
+    "Create New Booking";
+
+
+  $("formError").textContent =
+    "";
+
+
+  $("status").value =
+    "Confirmed";
+
+
+  $("type").value =
+    "Anniversary Surprise";
+
+
+  $("bookedBy").value =
+    staffProfile?.full_name ||
+    "";
+
+
+  if (selectedDate) {
+
+    $("date").value =
+      selectedDate;
+
+  }
+
+
+  selectedStartTime =
+    null;
+
+  selectedEndTime =
+    null;
+
+}
+
+
+function closeModal() {
+
+  $("modal")
+    .classList
+    .add("hidden");
+
+}
+
+
+$("close")
+  .addEventListener(
+    "click",
+    closeModal
+  );
+
+
+$("cancelModal")
+  .addEventListener(
+    "click",
+    closeModal
+  );
+
+
+$("modal")
+  .addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target === $("modal")
+      ) {
+
+        closeModal();
+
+      }
+
+    }
+  );
 
 
 /* =====================================================
    SAVE BOOKING
 ===================================================== */
 
-async function saveBooking() {
+$("bookingForm")
+  .addEventListener(
+    "submit",
+    saveBooking
+  );
+
+
+async function saveBooking(event) {
+
+  event.preventDefault();
+
 
   const id =
-    $('editId').value;
+    $("editId").value;
 
 
   const b = {
 
     type:
-      $('type').value,
+      $("type").value,
 
     date:
-      $('date').value,
+      $("date").value,
 
     time:
-      $('time').value,
+      $("time").value,
+
+    endTime:
+      $("endTime").value,
 
     bookedBy:
-      $('bookedBy')
+      $("bookedBy")
         .value
         .trim(),
 
     customer:
-      $('customer')
+      $("customer")
         .value
         .trim(),
 
     phone:
-      $('phone')
+      $("phone")
         .value
         .trim(),
 
     status:
-      $('status').value,
+      $("status").value,
 
     notes:
-      $('notes')
+      $("notes")
         .value
         .trim()
 
@@ -553,8 +1559,8 @@ async function saveBooking() {
 
   if (!b.date) {
 
-    $('formError').textContent =
-      'Please select a date.';
+    $("formError").textContent =
+      "Please select a date.";
 
     return;
   }
@@ -562,39 +1568,113 @@ async function saveBooking() {
 
   if (!b.time) {
 
-    $('formError').textContent =
-      'Please select a time.';
+    $("formError").textContent =
+      "Please select a start time.";
+
+    return;
+  }
+
+
+  if (!b.endTime) {
+
+    $("formError").textContent =
+      "Please select an end time.";
+
+    return;
+  }
+
+
+  const start =
+    timeToMinutes(
+      b.time
+    );
+
+  const end =
+    timeToMinutes(
+      b.endTime
+    );
+
+
+  if (end <= start) {
+
+    $("formError").textContent =
+      "End time must be later than start time.";
+
+    return;
+  }
+
+
+  if (
+    end - start < 60
+  ) {
+
+    $("formError").textContent =
+      "Minimum booking duration is 1 hour.";
 
     return;
   }
 
 
   /*
-    IMPORTANT:
-    Same date + different time is allowed.
+    Check overlap.
   */
 
   const duplicate =
-    bookings.find(
-      x =>
-        x.date === b.date &&
-        x.time === b.time &&
-        x.status !== 'Cancelled' &&
-        x.id !== id
-    );
+    bookings.find(x => {
+
+      if (
+        x.id === id ||
+        x.date !== b.date ||
+        x.status === "Cancelled"
+      ) {
+
+        return false;
+
+      }
+
+
+      const existingStart =
+        x.time;
+
+
+      const existingEnd =
+        x.endTime ||
+        minutesToTime(
+          timeToMinutes(
+            x.time
+          ) + 30
+        );
+
+
+      return timeRangesOverlap(
+        b.time,
+        b.endTime,
+        existingStart,
+        existingEnd
+      );
+
+    });
 
 
   if (duplicate) {
 
-    $('formError').textContent =
-      `This date and time is already booked by ${duplicate.bookedBy}. Choose another time.`;
+    $("formError").textContent =
+      `This time overlaps with ${duplicate.bookedBy}'s booking (${formatTimeRange(
+        duplicate.time,
+        duplicate.endTime ||
+        minutesToTime(
+          timeToMinutes(
+            duplicate.time
+          ) + 30
+        )
+      )}).`;
 
     return;
   }
 
 
-  $('formError').textContent =
-    'Saving…';
+  $("formError").textContent =
+    "Saving booking…";
 
 
   const row = {
@@ -604,6 +1684,9 @@ async function saveBooking() {
 
     event_time:
       b.time,
+
+    event_end_time:
+      b.endTime,
 
     event_type:
       b.type,
@@ -633,33 +1716,37 @@ async function saveBooking() {
 
     result =
       await db
-        .from('bookings')
+        .from("bookings")
         .update(row)
-        .eq('id', id)
+        .eq("id",id)
         .select()
         .single();
 
-  } else {
+  }
+
+  else {
 
     result =
       await db
-        .from('bookings')
+        .from("bookings")
         .insert({
+
           ...row,
+
           created_by:
             currentUser.id
+
         })
         .select()
         .single();
+
   }
 
 
   if (result.error) {
 
-    $('formError').textContent =
-      result.error.code === '23505'
-        ? 'That date and time was just booked by another device. Please choose another time.'
-        : result.error.message;
+    $("formError").textContent =
+      result.error.message;
 
     return;
   }
@@ -667,679 +1754,132 @@ async function saveBooking() {
 
   closeModal();
 
+
   await loadBookings();
 
-  render();
 
-  if (
-    !$('bookings')
-      .classList
-      .contains('hidden')
-  ) {
+  renderAll();
 
-    renderBookings();
-  }
-}
-
-
-$('bookingForm').onsubmit =
-  e => {
-
-    e.preventDefault();
-
-    saveBooking();
-  };
-
-
-/* =====================================================
-   DASHBOARD
-===================================================== */
-
-function render() {
-
-  stats();
-
-  calendar();
-
-  upcoming();
-}
-
-
-function stats() {
-
-  const now =
-    new Date();
-
-  const year =
-    now.getFullYear();
-
-  const monthNumber =
-    String(
-      now.getMonth() + 1
-    ).padStart(2, '0');
-
-
-  $('total').textContent =
-    bookings.length;
-
-
-  $('month').textContent =
-    bookings.filter(
-      b =>
-        b.date?.startsWith(
-          `${year}-${monthNumber}`
-        )
-    ).length;
-
-
-  $('upcoming').textContent =
-    bookings.filter(
-      b =>
-        b.date >= today() &&
-        b.status !== 'Cancelled'
-    ).length;
-
-
-  $('customers').textContent =
-    new Set(
-      bookings.map(
-        b =>
-          b.customer ||
-          b.bookedBy
-      )
-    ).size;
 }
 
 
 /* =====================================================
-   MINI CALENDAR
-===================================================== */
-
-function calendar() {
-
-  const year =
-    month.getFullYear();
-
-  const monthIndex =
-    month.getMonth();
-
-  const first =
-    new Date(
-      year,
-      monthIndex,
-      1
-    ).getDay();
-
-  const days =
-    new Date(
-      year,
-      monthIndex + 1,
-      0
-    ).getDate();
-
-
-  $('calTitle').textContent =
-    month.toLocaleString(
-      'en-IN',
-      {
-        month: 'long',
-        year: 'numeric'
-      }
-    );
-
-
-  let html = '';
-
-  for (
-    let i = 0;
-    i < first;
-    i++
-  ) {
-
-    html += '<span></span>';
-  }
-
-
-  for (
-    let d = 1;
-    d <= days;
-    d++
-  ) {
-
-    const date =
-      `${year}-${String(
-        monthIndex + 1
-      ).padStart(2, '0')}-${String(
-        d
-      ).padStart(2, '0')}`;
-
-
-    const booked =
-      bookings.some(
-        x =>
-          x.date === date &&
-          x.status !== 'Cancelled'
-      );
-
-
-    html += `
-      <button
-        class="${booked ? 'booked ' : ''}${date === today() ? 'today' : ''}"
-        onclick="openModal('${date}')"
-      >
-        ${d}
-      </button>
-    `;
-  }
-
-
-  $('days').innerHTML =
-    html;
-}
-
-
-/* =====================================================
-   UPCOMING
-===================================================== */
-
-function upcoming() {
-
-  const list =
-    bookings
-      .filter(
-        b =>
-          b.date >= today() &&
-          b.status !== 'Cancelled'
-      )
-      .sort(
-        (a, b) =>
-          (
-            a.date +
-            a.time
-          ).localeCompare(
-            b.date +
-            b.time
-          )
-      )
-      .slice(0, 5);
-
-
-  $('upcomingList').innerHTML =
-    list.length
-
-      ? list.map(
-          b => `
-
-            <div class="booking">
-
-              <div class="thumb">
-                ${icons[b.type] || '✦'}
-              </div>
-
-              <div>
-
-                <b>
-                  ${esc(b.type)}
-                </b>
-
-                <div class="sub">
-                  ${esc(
-                    b.notes ||
-                    'Special surprise experience'
-                  )}
-                </div>
-
-              </div>
-
-              <div class="meta">
-
-                <b>
-                  ▣ ${fmt(b.date)}
-                </b>
-
-                <br>
-
-                ◷ ${esc(
-                  formatTime(b.time)
-                )}
-
-              </div>
-
-              <div class="meta">
-
-                Booked by
-
-                <br>
-
-                <b>
-                  ${esc(b.bookedBy)}
-                </b>
-
-              </div>
-
-              <span class="badge">
-                ${esc(
-                  b.status ||
-                  'Confirmed'
-                )}
-              </span>
-
-            </div>
-
-          `
-        ).join('')
-
-      : `
-        <div class="card">
-          <p>
-            No upcoming bookings.
-            Create your first surprise.
-          </p>
-        </div>
-      `;
-}
-
-
-/* =====================================================
-   PAGE NAVIGATION
-===================================================== */
-
-function page(name) {
-
-  document
-    .querySelectorAll('.page')
-    .forEach(
-      x =>
-        x.classList.add('hidden')
-    );
-
-
-  $(name)
-    .classList
-    .remove('hidden');
-
-
-  document
-    .querySelectorAll('nav button')
-    .forEach(
-      x =>
-        x.classList.toggle(
-          'active',
-          x.dataset.page === name
-        )
-    );
-
-
-  if (name === 'dashboard') {
-
-    render();
-  }
-
-
-  if (name === 'bookings') {
-
-    renderBookings();
-  }
-
-
-  if (name === 'availability') {
-
-    availability();
-  }
-
-
-  if (name === 'customers') {
-
-    customers();
-  }
-
-
-  if (name === 'reports') {
-
-    reports();
-  }
-
-
-  /*
-    Automatically close mobile sidebar.
-  */
-
-  document
-    .querySelector('aside')
-    .classList
-    .remove('open');
-}
-
-
-/* =====================================================
-   NAV BUTTONS
-===================================================== */
-
-document
-  .querySelectorAll('[data-page]')
-  .forEach(
-    button => {
-
-      button.onclick =
-        () =>
-          page(
-            button.dataset.page
-          );
-    }
-  );
-
-
-document
-  .querySelectorAll('[data-add]')
-  .forEach(
-    button => {
-
-      button.onclick =
-        () =>
-          openModal();
-    }
-  );
-
-
-/* =====================================================
-   MOBILE MENU
-===================================================== */
-
-$('menu').onclick =
-  () => {
-
-    document
-      .querySelector('aside')
-      .classList
-      .toggle('open');
-  };
-
-
-/* =====================================================
-   SEARCH
-===================================================== */
-
-$('filter').oninput =
-  renderBookings;
-
-
-$('search').oninput =
-  e => {
-
-    $('filter').value =
-      e.target.value;
-
-    page('bookings');
-  };
-
-
-/* =====================================================
-   MONTH NAVIGATION
-===================================================== */
-
-$('prev').onclick =
-  () => {
-
-    month.setMonth(
-      month.getMonth() - 1
-    );
-
-    calendar();
-  };
-
-
-$('next').onclick =
-  () => {
-
-    month.setMonth(
-      month.getMonth() + 1
-    );
-
-    calendar();
-  };
-
-
-/* =====================================================
-   BOOKING LIST
-===================================================== */
-
-function renderBookings() {
-
-  const q =
-    (
-      $('filter').value ||
-      ''
-    )
-      .toLowerCase()
-      .trim();
-
-
-  const results =
-    bookings
-      .filter(
-        b => {
-
-          const searchable = [
-
-            b.type,
-
-            b.bookedBy,
-
-            b.customer,
-
-            b.phone,
-
-            b.date,
-
-            b.time,
-
-            formatTime(b.time),
-
-            b.status
-
-          ]
-            .join(' ')
-            .toLowerCase();
-
-
-          return searchable.includes(q);
-        }
-      )
-      .sort(
-        (a, b) =>
-          (
-            a.date +
-            a.time
-          ).localeCompare(
-            b.date +
-            b.time
-          )
-      );
-
-
-  $('allBookings').innerHTML =
-
-    results.length
-
-      ? results.map(
-          b => `
-
-            <div class="fullrow">
-
-              <b>
-                ${fmt(b.date)}
-              </b>
-
-              <span>
-
-                <b>
-                  ${esc(b.type)}
-                </b>
-
-                <br>
-
-                ${esc(
-                  b.customer ||
-                  'No customer'
-                )}
-
-              </span>
-
-              <span>
-
-                ${esc(
-                  b.bookedBy
-                )}
-
-                <br>
-
-                ${esc(
-                  b.phone ||
-                  ''
-                )}
-
-              </span>
-
-              <span>
-
-                ${esc(
-                  formatTime(b.time)
-                )}
-
-              </span>
-
-              <span>
-
-                <span class="badge">
-                  ${esc(b.status)}
-                </span>
-
-              </span>
-
-              <span class="row-actions">
-
-                <button
-                  class="mini"
-                  onclick="editBooking('${b.id}')"
-                >
-                  Edit
-                </button>
-
-                <button
-                  class="mini danger"
-                  onclick="deleteBooking('${b.id}')"
-                >
-                  Delete
-                </button>
-
-              </span>
-
-            </div>
-
-          `
-        ).join('')
-
-      : `
-        <div style="padding:30px;text-align:center;color:#968983;">
-          No bookings found.
-        </div>
-      `;
-}
-
-
-/* =====================================================
-   EDIT BOOKING
+   EDIT
 ===================================================== */
 
 window.editBooking =
-  id => {
+  function(id) {
 
     const b =
       bookings.find(
         x => x.id === id
       );
 
-    if (!b) return;
 
-
-    openModal();
-
-
-    $('editId').value =
-      b.id;
-
-    $('type').value =
-      b.type;
-
-    $('date').value =
-      b.date;
-
-    $('time').value =
-      b.time;
-
-    $('bookedBy').value =
-      b.bookedBy;
-
-    $('customer').value =
-      b.customer;
-
-    $('phone').value =
-      b.phone;
-
-    $('status').value =
-      b.status;
-
-    $('notes').value =
-      b.notes;
-
-
-    $('modalTitle').textContent =
-      'Edit Booking';
-  };
-
-
-/* =====================================================
-   DELETE BOOKING
-===================================================== */
-
-window.deleteBooking =
-  async id => {
-
-    const b =
-      bookings.find(
-        x => x.id === id
-      );
-
-    if (!b) return;
-
-
-    const label =
-      `${b.type} on ${fmt(b.date)} at ${formatTime(b.time)}`;
-
-
-    if (
-      !confirm(
-        `Delete this booking?\n\n${label}\n\nThis action cannot be undone.`
-      )
-    ) {
-
+    if (!b) {
       return;
     }
 
 
-    const {
-      error
-    } =
+    $("modal")
+      .classList
+      .remove("hidden");
+
+
+    $("modalTitle").textContent =
+      "Edit Booking";
+
+
+    $("editId").value =
+      b.id;
+
+
+    $("type").value =
+      b.type;
+
+
+    $("status").value =
+      b.status;
+
+
+    $("date").value =
+      b.date;
+
+
+    $("time").value =
+      b.time;
+
+
+    $("endTime").value =
+      b.endTime ||
+      minutesToTime(
+        timeToMinutes(
+          b.time
+        ) + 60
+      );
+
+
+    $("bookedBy").value =
+      b.bookedBy;
+
+
+    $("customer").value =
+      b.customer;
+
+
+    $("phone").value =
+      b.phone;
+
+
+    $("notes").value =
+      b.notes;
+
+
+    $("formError").textContent =
+      "";
+
+  };
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+window.deleteBooking =
+  async function(id) {
+
+    const booking =
+      bookings.find(
+        x => x.id === id
+      );
+
+
+    if (!booking) {
+      return;
+    }
+
+
+    const ok =
+      confirm(
+        `Delete booking for ${booking.customer || "this customer"}?`
+      );
+
+
+    if (!ok) {
+      return;
+    }
+
+
+    const { error } =
       await db
-        .from('bookings')
+        .from("bookings")
         .delete()
-        .eq('id', id);
+        .eq("id",id);
 
 
     if (error) {
 
       alert(
-        'Could not delete booking: ' +
         error.message
       );
 
@@ -1349,86 +1889,74 @@ window.deleteBooking =
 
     await loadBookings();
 
-    render();
+    renderAll();
 
-    renderBookings();
   };
-
-
-/* =====================================================
-   BOOKING MODAL
-===================================================== */
-
-function openModal(date = '') {
-
-  $('bookingForm').reset();
-
-  $('editId').value = '';
-
-  $('modal')
-    .classList
-    .remove('hidden');
-
-
-  $('date').value =
-    date ||
-    today();
-
-
-  $('modalTitle').textContent =
-    'Create New Booking';
-
-
-  $('formError').textContent =
-    '';
-}
-
-
-function closeModal() {
-
-  $('modal')
-    .classList
-    .add('hidden');
-}
-
-
-$('close').onclick =
-  closeModal;
-
-
-$('cancelModal').onclick =
-  closeModal;
 
 
 /* =====================================================
    AVAILABILITY
 ===================================================== */
 
-function availability() {
-
-  rangeStart = null;
-
-  rangeEnd = null;
-
-  availabilityDate =
-    today();
-
+function renderAvailability() {
 
   renderAvailabilityDates();
 
-  renderAvailabilitySlots(
-    availabilityDate
-  );
+
+  if (
+    !selectedAvailabilityDate
+  ) {
+
+    selectedAvailabilityDate =
+      getLocalDateString();
+
+  }
+
+
+  renderAvailabilitySlots();
+
 }
 
 
-/* =====================================================
-   DATE STRIP
-===================================================== */
+function getLocalDateString() {
+
+  const now =
+    new Date();
+
+
+  return [
+    now.getFullYear(),
+
+    String(
+      now.getMonth() + 1
+    ).padStart(2,"0"),
+
+    String(
+      now.getDate()
+    ).padStart(2,"0")
+
+  ].join("-");
+
+}
+
 
 function renderAvailabilityDates() {
 
-  const dates = [];
+  const container =
+    $("availDays");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "";
+
+
+  const base =
+    new Date();
 
 
   for (
@@ -1437,193 +1965,104 @@ function renderAvailabilityDates() {
     i++
   ) {
 
-    const d =
-      new Date();
-
-    d.setHours(
-      0,
-      0,
-      0,
-      0
-    );
-
-    d.setDate(
-      d.getDate() + i
-    );
-
-
-    const s =
-      d.getFullYear() +
-      '-' +
-      String(
-        d.getMonth() + 1
-      ).padStart(2, '0') +
-      '-' +
-      String(
-        d.getDate()
-      ).padStart(2, '0');
-
-
-    const weekday =
-      d.toLocaleDateString(
-        'en-IN',
-        {
-          weekday: 'short'
-        }
-      ).toUpperCase();
-
-
-    const day =
-      d.getDate();
-
-
-    const monthName =
-      d.toLocaleDateString(
-        'en-IN',
-        {
-          month: 'short'
-        }
+    const date =
+      new Date(
+        base.getFullYear(),
+        base.getMonth(),
+        base.getDate() + i
       );
 
 
-    const selected =
-      s === availabilityDate;
+    const dateString =
+      [
+        date.getFullYear(),
+
+        String(
+          date.getMonth() + 1
+        ).padStart(2,"0"),
+
+        String(
+          date.getDate()
+        ).padStart(2,"0")
+
+      ].join("-");
 
 
-    dates.push(`
-
-      <button
-        class="availability-date ${selected ? 'selected' : ''}"
-        onclick="selectAvailabilityDate('${s}')"
-      >
-
-        <span class="avail-weekday">
-          ${weekday}
-        </span>
-
-        <strong>
-          ${day}
-        </strong>
-
-        <span class="avail-month">
-          ${monthName}
-        </span>
-
-      </button>
-
-    `);
-  }
+    const button =
+      document.createElement(
+        "button"
+      );
 
 
-  $('availDays').innerHTML =
-    dates.join('');
-}
+    button.className =
+      "availability-date";
 
 
-/* =====================================================
-   SELECT DATE
-===================================================== */
+    if (
+      dateString ===
+      selectedAvailabilityDate
+    ) {
 
-window.selectAvailabilityDate =
-  function(date) {
+      button.classList.add(
+        "selected"
+      );
 
-    availabilityDate =
-      date;
-
-    rangeStart = null;
-
-    rangeEnd = null;
+    }
 
 
-    renderAvailabilityDates();
+    button.innerHTML = `
 
-    renderAvailabilitySlots(
-      date
-    );
-  };
+      <span class="day-name">
+        ${date.toLocaleDateString(
+          "en-IN",
+          { weekday:"short" }
+        )}
+      </span>
 
+      <span class="day-number">
+        ${date.getDate()}
+      </span>
 
-/* =====================================================
-   TIME HELPERS
-===================================================== */
+      <span class="month-name">
+        ${date.toLocaleDateString(
+          "en-IN",
+          { month:"short" }
+        )}
+      </span>
 
-function timeToMinutes(time) {
-
-  const [
-    h,
-    m
-  ] =
-    time
-      .split(':')
-      .map(Number);
-
-  return (
-    h * 60 +
-    m
-  );
-}
+    `;
 
 
-function minutesToTime(minutes) {
+    button.addEventListener(
+      "click",
+      () => {
 
-  const h =
-    Math.floor(
-      minutes / 60
+        selectedAvailabilityDate =
+          dateString;
+
+        selectedStartTime =
+          null;
+
+        selectedEndTime =
+          null;
+
+        renderAvailability();
+
+      }
     );
 
-  const m =
-    minutes % 60;
 
+    container.appendChild(
+      button
+    );
 
-  return (
-    String(h).padStart(2, '0') +
-    ':' +
-    String(m).padStart(2, '0')
-  );
-}
-
-
-function formatAvailabilityTime(time) {
-
-  return formatTime(time);
-}
-
-
-/* =====================================================
-   PAST TIME
-===================================================== */
-
-function isPastTime(
-  date,
-  time
-) {
-
-  if (
-    date !== today()
-  ) {
-
-    return false;
   }
 
-
-  const now =
-    new Date();
-
-
-  const currentMinutes =
-    now.getHours() * 60 +
-    now.getMinutes();
-
-
-  return (
-    timeToMinutes(time) <=
-    currentMinutes
-  );
 }
 
 
 /* =====================================================
-   BOOKED TIME
+   CHECK BOOKED TIME
 ===================================================== */
 
 function isTimeBooked(
@@ -1640,98 +2079,92 @@ function isTimeBooked(
 
       if (
         b.date !== date ||
-        b.status === 'Cancelled'
+        b.status === "Cancelled"
       ) {
 
         return false;
+
       }
 
 
       if (!b.time) {
-
         return false;
       }
 
 
-      return (
+      const start =
         timeToMinutes(
           b.time
-        ) === target
+        );
+
+
+      const end =
+        b.endTime
+          ? timeToMinutes(
+              b.endTime
+            )
+          : start + 30;
+
+
+      return (
+        target >= start &&
+        target < end
       );
+
     }
   );
+
 }
 
 
 /* =====================================================
-   RANGE
+   AVAILABILITY SLOTS
 ===================================================== */
 
-function isInSelectedRange(
-  time
-) {
+function renderAvailabilitySlots() {
 
-  if (!rangeStart) {
+  const container =
+    $("availInfo");
 
-    return false;
+
+  if (!container) {
+    return;
   }
 
 
-  const current =
-    timeToMinutes(time);
-
-  const start =
-    timeToMinutes(rangeStart);
+  const date =
+    selectedAvailabilityDate;
 
 
-  if (!rangeEnd) {
-
-    return current === start;
+  if (!date) {
+    return;
   }
 
 
-  const end =
-    timeToMinutes(rangeEnd);
+  let html = `
 
+    <h2 class="availability-title">
+      ${formatDate(date)}
+    </h2>
 
-  return (
-    current >= start &&
-    current <= end
-  );
-}
-
-
-/* =====================================================
-   RENDER TIME SLOTS
-===================================================== */
-
-function renderAvailabilitySlots(
-  date
-) {
-
-  const slots = [];
+    <div class="time-grid">
+  `;
 
 
   /*
-    9:00 AM → 9:00 PM
+    9 AM to 9 PM.
+    30-minute intervals.
   */
 
   for (
     let minutes = 9 * 60;
-    minutes <= 21 * 60;
+    minutes < 21 * 60;
     minutes += 30
   ) {
 
     const time =
       minutesToTime(
         minutes
-      );
-
-
-    const past =
-      isPastTime(
-        date,
-        time
       );
 
 
@@ -1743,346 +2176,306 @@ function renderAvailabilitySlots(
 
 
     const selected =
-      isInSelectedRange(
-        time
-      );
+      selectedStartTime === time;
 
 
-    let classes =
-      'availability-slot';
-
-
-    if (past)
-      classes += ' past';
-
-
-    if (booked)
-      classes += ' booked';
-
-
-    if (selected)
-      classes += ' selected';
-
-
-    if (
-      rangeStart &&
-      rangeEnd &&
-      timeToMinutes(time) ===
-        timeToMinutes(rangeStart)
-    ) {
-
-      classes +=
-        ' range-start';
-    }
-
-
-    if (
-      rangeStart &&
-      rangeEnd &&
-      timeToMinutes(time) ===
-        timeToMinutes(rangeEnd)
-    ) {
-
-      classes +=
-        ' range-end';
-    }
-
-
-    const disabled =
-      past ||
-      booked;
-
-
-    slots.push(`
+    html += `
 
       <button
-
-        class="${classes}"
-
-        ${disabled ? 'disabled' : ''}
-
+        class="time-slot
+          ${booked ? "booked" : ""}
+          ${selected ? "selected" : ""}
+        "
+        ${
+          booked
+            ? "disabled"
+            : ""
+        }
         onclick="selectAvailabilityTime('${time}')"
-
       >
 
-        ${formatAvailabilityTime(time)}
+        ${formatTime(time)}
 
       </button>
 
-    `);
+    `;
+
   }
 
 
-  $('availInfo').innerHTML = `
+  html += `
+    </div>
+  `;
 
-    <div class="availability-header">
 
-      <div>
+  if (
+    selectedStartTime
+  ) {
 
-        <div class="availability-eyebrow">
-          LIVE AVAILABILITY
+    html += `
+
+      <div class="availability-selection">
+
+        <div>
+
+          <strong>
+            Selected start:
+          </strong>
+
+          ${formatTime(
+            selectedStartTime
+          )}
+
+          ${
+            selectedEndTime
+              ? `
+                <br>
+
+                <strong>
+                  End:
+                </strong>
+
+                ${formatTime(
+                  selectedEndTime
+                )}
+              `
+              : ""
+          }
+
         </div>
 
-        <h2>
-          Pick a date and time range
-        </h2>
 
-        <p class="availability-subtitle">
-          Availability updates automatically every few seconds.
-        </p>
+        ${
+          selectedEndTime
+            ? `
+              <button
+                class="create"
+                onclick="bookSelectedAvailability()"
+              >
+                Book this time →
+              </button>
+            `
+            : `
+              <span class="sub">
+                Now select an end time.
+              </span>
+            `
+        }
 
       </div>
 
-    </div>
+    `;
+
+  }
 
 
-    <div class="availability-instruction">
-
-      Tap a time to start, then tap another to set how long you need.
-      Stay 3–4 hours if your event needs it.
-
-    </div>
+  container.innerHTML =
+    html;
 
 
-    <div class="availability-slots">
+  /*
+    Add end-time selection behavior.
+  */
 
-      ${slots.join('')}
+  if (
+    selectedStartTime &&
+    !selectedEndTime
+  ) {
 
-    </div>
-
-
-    <div class="availability-help">
-
-      Slots run in 30-minute steps (minimum 1 hour).
-      Pick a continuous run as many as you need,
-      then fill in your details below.
-      Once a range is booked it's held exclusively for you.
-
-    </div>
+    const slots =
+      container.querySelectorAll(
+        ".time-slot:not(.booked)"
+      );
 
 
-    ${
-      rangeStart
-        ? `
+    slots.forEach(
+      button => {
 
-          <div class="availability-selection">
+        const text =
+          button.textContent
+            .trim();
 
-            <div>
-
-              <span>
-                SELECTED START
-              </span>
-
-              <strong>
-                ${formatAvailabilityTime(rangeStart)}
-              </strong>
-
-            </div>
+        const time =
+          convertDisplayTimeTo24(
+            text
+          );
 
 
-            ${
-              rangeEnd
-                ? `
+        if (
+          time &&
+          timeToMinutes(time) <=
+            timeToMinutes(
+              selectedStartTime
+            )
+        ) {
 
-                  <div>
+          button.disabled =
+            true;
 
-                    <span>
-                      SELECTED END
-                    </span>
+        }
 
-                    <strong>
-                      ${formatAvailabilityTime(rangeEnd)}
-                    </strong>
+      }
+    );
 
-                  </div>
+  }
 
-                  <button
-                    class="availability-book-btn"
-                    onclick="bookSelectedAvailability()"
-                  >
-                    Book this time →
-                  </button>
-
-                `
-                : `
-
-                  <div>
-
-                    <span>
-                      NEXT STEP
-                    </span>
-
-                    <strong>
-                      Select end time
-                    </strong>
-
-                  </div>
-
-                `
-            }
-
-          </div>
-
-        `
-        : ''
-    }
-
-  `;
 }
 
 
-/* =====================================================
-   SELECT TIME
-===================================================== */
+function convertDisplayTimeTo24(
+  display
+) {
+
+  const match =
+    display.match(
+      /^(\d+):(\d+)\s*(AM|PM)$/i
+    );
+
+
+  if (!match) {
+    return null;
+  }
+
+
+  let hour =
+    Number(match[1]);
+
+  const minute =
+    Number(match[2]);
+
+  const suffix =
+    match[3].toUpperCase();
+
+
+  if (
+    suffix === "PM" &&
+    hour !== 12
+  ) {
+
+    hour += 12;
+
+  }
+
+
+  if (
+    suffix === "AM" &&
+    hour === 12
+  ) {
+
+    hour = 0;
+
+  }
+
+
+  return minutesToTime(
+    hour * 60 + minute
+  );
+
+}
+
 
 window.selectAvailabilityTime =
   function(time) {
 
     /*
       First click = start.
-    */
-
-    if (!rangeStart) {
-
-      rangeStart =
-        time;
-
-      rangeEnd =
-        null;
-
-      renderAvailabilitySlots(
-        availabilityDate
-      );
-
-      return;
-    }
-
-
-    /*
-      Clicking before start
-      creates a new start.
-    */
-
-    if (
-      timeToMinutes(time) <
-      timeToMinutes(rangeStart)
-    ) {
-
-      rangeStart =
-        time;
-
-      rangeEnd =
-        null;
-
-      renderAvailabilitySlots(
-        availabilityDate
-      );
-
-      return;
-    }
-
-
-    /*
       Second click = end.
     */
 
-    rangeEnd =
-      time;
-
-
-    /*
-      Minimum 1 hour.
-    */
-
-    const duration =
-      timeToMinutes(rangeEnd) -
-      timeToMinutes(rangeStart);
-
-
     if (
-      duration < 60
+      !selectedStartTime ||
+      selectedEndTime
     ) {
 
-      rangeEnd =
+      selectedStartTime =
+        time;
+
+      selectedEndTime =
         null;
 
-      renderAvailabilitySlots(
-        availabilityDate
-      );
-
-      alert(
-        'Please select at least 1 hour.'
-      );
+      renderAvailability();
 
       return;
+
     }
 
-
-    /*
-      Check every slot
-      inside range.
-    */
 
     const start =
       timeToMinutes(
-        rangeStart
+        selectedStartTime
       );
+
 
     const end =
       timeToMinutes(
-        rangeEnd
+        time
       );
 
 
-    for (
-      let t = start;
-      t <= end;
-      t += 30
+    if (
+      end <= start
     ) {
 
-      const slot =
-        minutesToTime(t);
+      selectedStartTime =
+        time;
 
+      selectedEndTime =
+        null;
 
-      if (
-        isTimeBooked(
-          availabilityDate,
-          slot
-        )
-      ) {
+      renderAvailability();
 
-        rangeEnd =
-          null;
+      return;
 
-        renderAvailabilitySlots(
-          availabilityDate
-        );
-
-        alert(
-          'This range contains a booked time. Please choose another range.'
-        );
-
-        return;
-      }
     }
 
 
-    renderAvailabilitySlots(
-      availabilityDate
-    );
+    /*
+      Check every 30-minute block.
+    */
+
+    for (
+      let t = start;
+      t < end;
+      t += 30
+    ) {
+
+      if (
+        isTimeBooked(
+          selectedAvailabilityDate,
+          minutesToTime(t)
+        )
+      ) {
+
+        alert(
+          "This time range contains an already booked time."
+        );
+
+        selectedEndTime =
+          null;
+
+        renderAvailability();
+
+        return;
+
+      }
+
+    }
+
+
+    selectedEndTime =
+      time;
+
+    renderAvailability();
+
   };
 
-
-/* =====================================================
-   BOOK SELECTED RANGE
-===================================================== */
 
 window.bookSelectedAvailability =
   function() {
 
     if (
-      !rangeStart ||
-      !rangeEnd
+      !selectedStartTime ||
+      !selectedEndTime
     ) {
 
       return;
@@ -2090,20 +2483,17 @@ window.bookSelectedAvailability =
 
 
     openModal(
-      availabilityDate
+      selectedAvailabilityDate
     );
 
 
-    $('time').value =
-      rangeStart;
+    $("time").value =
+      selectedStartTime;
 
 
-    $('time').dataset.endTime =
-      rangeEnd;
+    $("endTime").value =
+      selectedEndTime;
 
-
-    $('formError').textContent =
-      `Selected time: ${formatAvailabilityTime(rangeStart)} – ${formatAvailabilityTime(rangeEnd)}`;
   };
 
 
@@ -2111,78 +2501,119 @@ window.bookSelectedAvailability =
    CUSTOMERS
 ===================================================== */
 
-function customers() {
+function renderCustomers() {
 
-  const map = {};
-
-
-  bookings.forEach(
-    b => {
-
-      const key =
-        b.customer ||
-        b.phone ||
-        b.bookedBy;
+  const container =
+    $("customerGrid");
 
 
-      if (!map[key]) {
+  if (!container) {
+    return;
+  }
 
-        map[key] = {
 
+  const map =
+    new Map();
+
+
+  bookings.forEach(b => {
+
+    const key =
+      b.phone ||
+      b.customer ||
+      "Unknown";
+
+
+    if (!map.has(key)) {
+
+      map.set(
+        key,
+        {
           name:
             b.customer ||
-            b.bookedBy,
+            "Unknown Customer",
 
           phone:
-            b.phone,
+            b.phone ||
+            "",
 
-          count: 0
+          bookings:
+            0
+        }
+      );
 
-        };
-      }
-
-
-      map[key].count++;
     }
-  );
 
 
-  $('customerGrid').innerHTML =
+    map.get(key).bookings++;
 
-    Object.values(map)
-      .map(
-        c => `
+  });
 
-          <div class="customer">
 
-            <h3>
-              ${esc(c.name)}
-            </h3>
+  const list =
+    [...map.values()];
 
-            <p>
-              ${esc(
-                c.phone ||
-                'No phone added'
-              )}
-            </p>
 
-            <b>
-              ${c.count} booking(s)
-            </b>
+  if (!list.length) {
+
+    container.innerHTML =
+      `<div class="empty">
+        No customers yet.
+      </div>`;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    list.map(c => {
+
+      const initials =
+        c.name
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0,2)
+          .map(x => x[0])
+          .join("")
+          .toUpperCase();
+
+
+      return `
+
+        <div class="customer-card">
+
+          <div class="customer-avatar">
+
+            ${escapeHTML(
+              initials || "C"
+            )}
 
           </div>
 
-        `
-      )
-      .join('')
+          <h3>
+            ${escapeHTML(
+              c.name
+            )}
+          </h3>
 
-      ||
+          <p>
+            ${escapeHTML(
+              c.phone ||
+              "No phone number"
+            )}
+          </p>
 
-      `
-        <div class="card">
-          No customers yet.
+          <p>
+            ${c.bookings}
+            booking${c.bookings === 1 ? "" : "s"}
+          </p>
+
         </div>
+
       `;
+
+    }).join("");
+
 }
 
 
@@ -2190,105 +2621,262 @@ function customers() {
    REPORTS
 ===================================================== */
 
-function reports() {
+function renderReports() {
 
-  $('reportsGrid').innerHTML = `
+  const container =
+    $("reportsGrid");
 
-    <article>
 
-      <b>
-        ${bookings.length}
-      </b>
+  if (!container) {
+    return;
+  }
+
+
+  const active =
+    bookings.filter(
+      b =>
+        b.status !== "Cancelled"
+    );
+
+
+  const confirmed =
+    bookings.filter(
+      b =>
+        b.status === "Confirmed"
+    );
+
+
+  const completed =
+    bookings.filter(
+      b =>
+        b.status === "Completed"
+    );
+
+
+  const cancelled =
+    bookings.filter(
+      b =>
+        b.status === "Cancelled"
+    );
+
+
+  container.innerHTML = `
+
+    <div class="report-card">
+
+      <strong>
+        ${active.length}
+      </strong>
 
       <span>
-        Total Bookings
+        Active Bookings
       </span>
 
-    </article>
+    </div>
 
 
-    <article>
+    <div class="report-card">
 
-      <b>
-        ${
-          bookings.filter(
-            x =>
-              x.status ===
-              'Confirmed'
-          ).length
-        }
-      </b>
+      <strong>
+        ${confirmed.length}
+      </strong>
 
       <span>
         Confirmed
       </span>
 
-    </article>
+    </div>
 
 
-    <article>
+    <div class="report-card">
 
-      <b>
-        ${
-          bookings.filter(
-            x =>
-              x.status ===
-              'Pending'
-          ).length
-        }
-      </b>
+      <strong>
+        ${completed.length}
+      </strong>
 
       <span>
-        Pending
+        Completed
       </span>
 
-    </article>
+    </div>
+
+
+    <div class="report-card">
+
+      <strong>
+        ${cancelled.length}
+      </strong>
+
+      <span>
+        Cancelled
+      </span>
+
+    </div>
+
+
+    <div class="report-card">
+
+      <strong>
+        ${new Set(
+          active
+            .map(b => b.phone || b.customer)
+            .filter(Boolean)
+        ).size}
+      </strong>
+
+      <span>
+        Unique Customers
+      </span>
+
+    </div>
+
+
+    <div class="report-card">
+
+      <strong>
+        ${active.filter(
+          b =>
+            b.type ===
+            "Birthday Surprise"
+        ).length}
+      </strong>
+
+      <span>
+        Birthday Surprises
+      </span>
+
+    </div>
 
   `;
+
 }
 
 
 /* =====================================================
-   AUTH SECURITY
+   NAVIGATION
 ===================================================== */
 
-(async () => {
+function showPage(page) {
 
-  /*
-    Force login when opening
-    a new page.
-  */
+  document
+    .querySelectorAll(".page")
+    .forEach(section => {
 
-  await db.auth.signOut();
+      section.classList.add(
+        "hidden"
+      );
 
-  showLogin();
+    });
 
 
-  db.auth.onAuthStateChange(
-    async (
-      event,
-      session
-    ) => {
+  const target =
+    $(page);
 
-      if (
-        event ===
-        'SIGNED_IN' &&
-        session
-      ) {
 
-        await startApp();
+  if (target) {
+
+    target.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(
+      "nav button[data-page]"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.page === page
+      );
+
+    });
+
+
+  if (
+    window.innerWidth <= 900
+  ) {
+
+    document
+      .querySelector("aside")
+      ?.classList
+      .remove("open");
+
+  }
+
+
+  if (
+    page === "availability"
+  ) {
+
+    renderAvailability();
+
+  }
+
+}
+
+
+document
+  .querySelectorAll(
+    "[data-page]"
+  )
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        showPage(
+          button.dataset.page
+        );
+
       }
+    );
+
+  });
 
 
-      if (
-        event ===
-        'SIGNED_OUT'
-      ) {
+document
+  .querySelectorAll(
+    "[data-add='booking']"
+  )
+  .forEach(button => {
 
-        showLogin();
+    button.addEventListener(
+      "click",
+      () => {
+
+        openModal();
+
       }
+    );
+
+  });
+
+
+/* =====================================================
+   MOBILE MENU
+===================================================== */
+
+$("menu")
+  .addEventListener(
+    "click",
+    () => {
+
+      document
+        .querySelector("aside")
+        .classList
+        .toggle("open");
 
     }
   );
 
-})();
+
+/* =====================================================
+   START
+===================================================== */
+
+initializeAuth();
