@@ -1,3 +1,5 @@
+// config.js
+
 window.DTS_SUPABASE_URL =
   "https://opaswgxddtvyvpxrnozp.supabase.co";
 
