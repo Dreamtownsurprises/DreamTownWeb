@@ -1,7 +1,7 @@
-// =====================================================
-// app.js
-// Dream Town Surprises
-// =====================================================
+/* =====================================================
+   DREAM TOWN SURPRISES
+   app.js
+   ===================================================== */
 
 const db = window.supabase.createClient(
   window.DTS_SUPABASE_URL,
@@ -25,7 +25,7 @@ let selectedEndTime = null;
 
 
 /* =====================================================
-   HELPERS
+   HELPER
 ===================================================== */
 
 const $ = id =>
@@ -51,33 +51,45 @@ function escapeHTML(value) {
 
 
 /* =====================================================
-   DATE
+   DATE HELPERS
 ===================================================== */
 
 function getLocalDateString() {
 
-  const now = new Date();
+  const d = new Date();
 
   return [
-    now.getFullYear(),
-    String(
-      now.getMonth() + 1
-    ).padStart(2, "0"),
-    String(
-      now.getDate()
-    ).padStart(2, "0")
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
   ].join("-");
 }
 
 
-function getPreviousDateString(
-  dateString
-) {
+function getNextDateString(dateString) {
 
   const d =
     new Date(
-      dateString +
-      "T00:00:00"
+      dateString + "T00:00:00"
+    );
+
+  d.setDate(
+    d.getDate() + 1
+  );
+
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+
+function getPreviousDateString(dateString) {
+
+  const d =
+    new Date(
+      dateString + "T00:00:00"
     );
 
   d.setDate(
@@ -86,19 +98,13 @@ function getPreviousDateString(
 
   return [
     d.getFullYear(),
-    String(
-      d.getMonth() + 1
-    ).padStart(2, "0"),
-    String(
-      d.getDate()
-    ).padStart(2, "0")
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
   ].join("-");
 }
 
 
-function formatDate(
-  dateString
-) {
+function formatDate(dateString) {
 
   if (!dateString) {
     return "";
@@ -106,8 +112,7 @@ function formatDate(
 
   const d =
     new Date(
-      dateString +
-      "T00:00:00"
+      dateString + "T00:00:00"
     );
 
   return d.toLocaleDateString(
@@ -122,7 +127,7 @@ function formatDate(
 
 
 /* =====================================================
-   TIME
+   TIME HELPERS
 ===================================================== */
 
 function timeToMinutes(time) {
@@ -141,21 +146,17 @@ function timeToMinutes(time) {
 }
 
 
-function minutesToTime(
-  minutes
-) {
+function minutesToTime(minutes) {
 
   minutes =
-    minutes % (24 * 60);
+    minutes % 1440;
 
   if (minutes < 0) {
-    minutes += 24 * 60;
+    minutes += 1440;
   }
 
   const hours =
-    Math.floor(
-      minutes / 60
-    );
+    Math.floor(minutes / 60);
 
   const mins =
     minutes % 60;
@@ -168,17 +169,11 @@ function minutesToTime(
 }
 
 
-/*
-  INTERNAL VALUE:
-  24-hour format
+/* =====================================================
+   12-HOUR DISPLAY
+===================================================== */
 
-  DISPLAY:
-  12-hour AM/PM
-*/
-
-function formatTime(
-  time
-) {
+function formatTime(time) {
 
   if (!time) {
     return "TBD";
@@ -191,11 +186,10 @@ function formatTime(
     Number(parts[0]);
 
   const minute =
-    String(
-      parts[1] || "00"
-    ).padStart(2, "0");
+    String(parts[1] || "00")
+      .padStart(2, "0");
 
-  const suffix =
+  const period =
     hour >= 12
       ? "PM"
       : "AM";
@@ -204,15 +198,12 @@ function formatTime(
     hour % 12 || 12;
 
   return (
-    `${displayHour}:${minute} ${suffix}`
+    `${displayHour}:${minute} ${period}`
   );
 }
 
 
-function formatTimeRange(
-  start,
-  end
-) {
+function formatTimeRange(start, end) {
 
   if (!start) {
     return "TBD";
@@ -224,173 +215,6 @@ function formatTimeRange(
 
   return (
     `${formatTime(start)} – ${formatTime(end)}`
-  );
-}
-
-
-/* =====================================================
-   CLOCK INPUTS
-===================================================== */
-
-/*
-  The old <select> elements are converted into
-  native clock/time inputs.
-
-  This gives:
-  - Every minute
-  - No 30-minute restriction
-  - AM/PM clock display where supported
-  - Native browser/mobile time picker
-*/
-
-function setupTimeInputs() {
-
-  const oldStart =
-    $("time");
-
-  const oldEnd =
-    $("endTime");
-
-  if (!oldStart || !oldEnd) {
-    return;
-  }
-
-  if (
-    oldStart.tagName === "INPUT" &&
-    oldStart.type === "time" &&
-    oldEnd.tagName === "INPUT" &&
-    oldEnd.type === "time"
-  ) {
-
-    oldStart.step = "60";
-    oldEnd.step = "60";
-
-    return;
-  }
-
-
-  const startValue =
-    oldStart.value || "";
-
-  const endValue =
-    oldEnd.value || "";
-
-
-  const startInput =
-    document.createElement(
-      "input"
-    );
-
-  startInput.type =
-    "time";
-
-  startInput.id =
-    "time";
-
-  startInput.name =
-    "time";
-
-  startInput.required =
-    true;
-
-  startInput.step =
-    "60";
-
-  startInput.value =
-    startValue;
-
-
-  const endInput =
-    document.createElement(
-      "input"
-    );
-
-  endInput.type =
-    "time";
-
-  endInput.id =
-    "endTime";
-
-  endInput.name =
-    "endTime";
-
-  endInput.required =
-    true;
-
-  endInput.step =
-    "60";
-
-  endInput.value =
-    endValue;
-
-
-  oldStart.replaceWith(
-    startInput
-  );
-
-  oldEnd.replaceWith(
-    endInput
-  );
-}
-
-
-setupTimeInputs();
-
-
-/* =====================================================
-   TIME OVERLAP
-===================================================== */
-
-function timeRangesOverlap(
-  startA,
-  endA,
-  startB,
-  endB
-) {
-
-  if (
-    !startA ||
-    !endA ||
-    !startB ||
-    !endB
-  ) {
-    return false;
-  }
-
-
-  let aStart =
-    timeToMinutes(startA);
-
-  let aEnd =
-    timeToMinutes(endA);
-
-  let bStart =
-    timeToMinutes(startB);
-
-  let bEnd =
-    timeToMinutes(endB);
-
-
-  /*
-    Overnight support.
-
-    Example:
-
-    10:00 PM → 1:00 AM
-  */
-
-  if (aEnd <= aStart) {
-    aEnd += 1440;
-  }
-
-  if (bEnd <= bStart) {
-    bEnd += 1440;
-  }
-
-
-  return (
-    aStart < bEnd &&
-    aEnd > bStart
   );
 }
 
@@ -408,13 +232,10 @@ function updateGreeting() {
     return;
   }
 
-
   const hour =
     new Date().getHours();
 
-
   let text;
-
 
   if (
     hour >= 5 &&
@@ -424,9 +245,7 @@ function updateGreeting() {
     text =
       "GOOD MORNING";
 
-  }
-
-  else if (
+  } else if (
     hour >= 12 &&
     hour < 17
   ) {
@@ -434,9 +253,7 @@ function updateGreeting() {
     text =
       "GOOD AFTERNOON";
 
-  }
-
-  else if (
+  } else if (
     hour >= 17 &&
     hour < 21
   ) {
@@ -444,15 +261,12 @@ function updateGreeting() {
     text =
       "GOOD EVENING";
 
-  }
-
-  else {
+  } else {
 
     text =
       "GOOD NIGHT";
 
   }
-
 
   greeting.textContent =
     text;
@@ -464,12 +278,12 @@ updateGreeting();
 
 setInterval(
   updateGreeting,
-  60 * 1000
+  60000
 );
 
 
 /* =====================================================
-   AUTH UI
+   AUTH
 ===================================================== */
 
 function showLogin() {
@@ -520,30 +334,17 @@ function showSignupPanel() {
 }
 
 
-/* =====================================================
-   AUTH
-===================================================== */
-
 async function initializeAuth() {
-
-  /*
-    Force a fresh login every time the page loads.
-  */
 
   await db.auth.signOut();
 
   showLogin();
 
-
   db.auth.onAuthStateChange(
-    async (
-      event,
-      session
-    ) => {
+    async (event, session) => {
 
       if (
-        event ===
-          "SIGNED_IN" &&
+        event === "SIGNED_IN" &&
         session
       ) {
 
@@ -553,20 +354,13 @@ async function initializeAuth() {
 
       }
 
-
       if (
-        event ===
-        "SIGNED_OUT"
+        event === "SIGNED_OUT"
       ) {
 
-        currentUser =
-          null;
-
-        staffProfile =
-          null;
-
-        bookings =
-          [];
+        currentUser = null;
+        staffProfile = null;
+        bookings = [];
 
         showLogin();
 
@@ -577,13 +371,10 @@ async function initializeAuth() {
 }
 
 
-async function handleSignedIn(
-  user
-) {
+async function handleSignedIn(user) {
 
   currentUser =
     user;
-
 
   const {
     data,
@@ -607,8 +398,12 @@ async function handleSignedIn(
 
     await db.auth.signOut();
 
-    $("loginError").textContent =
-      "Unable to verify your account.";
+    if ($("loginError")) {
+
+      $("loginError").textContent =
+        "Unable to verify your account.";
+
+    }
 
     return;
   }
@@ -618,8 +413,12 @@ async function handleSignedIn(
 
     await db.auth.signOut();
 
-    $("loginError").textContent =
-      "Your account is not approved for this dashboard.";
+    if ($("loginError")) {
+
+      $("loginError").textContent =
+        "Your account is not approved for this dashboard.";
+
+    }
 
     return;
   }
@@ -654,23 +453,18 @@ async function handleSignedIn(
   }
 
 
-  const initials =
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(
-        x => x[0]
-      )
-      .join("")
-      .toUpperCase();
-
-
   if ($("profileInitials")) {
 
     $("profileInitials").textContent =
-      initials ||
-      "DT";
+      name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(
+          x => x[0]
+        )
+        .join("")
+        .toUpperCase();
 
   }
 
@@ -684,7 +478,7 @@ async function handleSignedIn(
 
 
 /* =====================================================
-   LOGIN
+   LOGIN EVENTS
 ===================================================== */
 
 $("loginForm")
@@ -694,7 +488,6 @@ $("loginForm")
 
       event.preventDefault();
 
-
       $("loginError").textContent =
         "Signing in…";
 
@@ -703,7 +496,6 @@ $("loginForm")
         $("user")
           .value
           .trim();
-
 
       const password =
         $("pass")
@@ -715,10 +507,8 @@ $("loginForm")
         error
       } =
         await db.auth.signInWithPassword({
-
           email,
           password
-
         });
 
 
@@ -799,8 +589,7 @@ $("forgot")
         await db.auth.resetPasswordForEmail(
           email,
           {
-            redirectTo:
-              redirect
+            redirectTo: redirect
           }
         );
 
@@ -815,7 +604,7 @@ $("forgot")
 
 
 /* =====================================================
-   SIGNUP
+   SIGN UP
 ===================================================== */
 
 $("signupForm")
@@ -826,21 +615,15 @@ $("signupForm")
       event.preventDefault();
 
 
-      $("signupError").textContent =
-        "Creating account…";
-
-
       const name =
         $("signupName")
           .value
           .trim();
 
-
       const email =
         $("signupEmail")
           .value
           .trim();
-
 
       const password =
         $("signupPass")
@@ -848,8 +631,7 @@ $("signupForm")
 
 
       if (
-        password.length <
-        8
+        password.length < 8
       ) {
 
         $("signupError").textContent =
@@ -857,6 +639,10 @@ $("signupForm")
 
         return;
       }
+
+
+      $("signupError").textContent =
+        "Creating account…";
 
 
       const {
@@ -871,10 +657,7 @@ $("signupForm")
           options: {
 
             data: {
-
-              full_name:
-                name
-
+              full_name: name
             }
 
           }
@@ -926,15 +709,13 @@ async function loadBookings() {
       .order(
         "event_date",
         {
-          ascending:
-            true
+          ascending: true
         }
       )
       .order(
         "event_time",
         {
-          ascending:
-            true
+          ascending: true
         }
       );
 
@@ -951,8 +732,8 @@ async function loadBookings() {
 
 
   bookings =
-    (data || [])
-      .map(row => ({
+    (data || []).map(
+      row => ({
 
         id:
           row.id,
@@ -995,8 +776,8 @@ async function loadBookings() {
         createdAt:
           row.created_at
 
-      }));
-
+      })
+    );
 }
 
 
@@ -1077,7 +858,7 @@ function renderStats() {
     );
 
 
-  const customerSet =
+  const customers =
     new Set(
       active
         .map(
@@ -1116,10 +897,9 @@ function renderStats() {
   if ($("customers")) {
 
     $("customers").textContent =
-      customerSet.size;
+      customers.size;
 
   }
-
 }
 
 
@@ -1127,9 +907,7 @@ function renderStats() {
    EVENT ICON
 ===================================================== */
 
-function eventIcon(
-  type
-) {
+function eventIcon(type) {
 
   const value =
     String(
@@ -1138,9 +916,7 @@ function eventIcon(
 
 
   if (
-    value.includes(
-      "birthday"
-    )
+    value.includes("birthday")
   ) {
 
     return "🎂";
@@ -1149,9 +925,7 @@ function eventIcon(
 
 
   if (
-    value.includes(
-      "bride"
-    )
+    value.includes("bride")
   ) {
 
     return "👰";
@@ -1160,9 +934,7 @@ function eventIcon(
 
 
   if (
-    value.includes(
-      "proposal"
-    )
+    value.includes("proposal")
   ) {
 
     return "💍";
@@ -1171,9 +943,7 @@ function eventIcon(
 
 
   if (
-    value.includes(
-      "anniversary"
-    )
+    value.includes("anniversary")
   ) {
 
     return "♥";
@@ -1182,23 +952,10 @@ function eventIcon(
 
 
   if (
-    value.includes(
-      "romantic"
-    )
+    value.includes("romantic")
   ) {
 
     return "♥";
-
-  }
-
-
-  if (
-    value.includes(
-      "welcome"
-    )
-  ) {
-
-    return "✦";
 
   }
 
@@ -1241,17 +998,11 @@ function renderUpcoming() {
           "Cancelled"
       )
       .filter(
-        b => {
-
-          const d =
-            new Date(
-              b.date +
-              "T00:00:00"
-            );
-
-          return d >= today;
-
-        }
+        b =>
+          new Date(
+            b.date +
+            "T00:00:00"
+          ) >= today
       )
       .sort(
         (a, b) =>
@@ -1290,9 +1041,7 @@ function renderUpcoming() {
             <div>
 
               <b>
-                ${escapeHTML(
-                  b.type
-                )}
+                ${escapeHTML(b.type)}
               </b>
 
               <div class="sub">
@@ -1308,9 +1057,7 @@ function renderUpcoming() {
 
               <b>
                 ${escapeHTML(
-                  formatDate(
-                    b.date
-                  )
+                  formatDate(b.date)
                 )}
               </b>
 
@@ -1356,7 +1103,7 @@ function renderUpcoming() {
 
 
 /* =====================================================
-   CALENDAR
+   DASHBOARD CALENDAR
 ===================================================== */
 
 function renderCalendar() {
@@ -1387,10 +1134,8 @@ function renderCalendar() {
     calendarDate.toLocaleDateString(
       "en-IN",
       {
-        month:
-          "long",
-        year:
-          "numeric"
+        month: "long",
+        year: "numeric"
       }
     );
 
@@ -1459,12 +1204,9 @@ function renderCalendar() {
 
 
     if (
-      today.getFullYear() ===
-        year &&
-      today.getMonth() ===
-        month &&
-      today.getDate() ===
-        day
+      today.getFullYear() === year &&
+      today.getMonth() === month &&
+      today.getDate() === day
     ) {
 
       button.classList.add(
@@ -1477,8 +1219,7 @@ function renderCalendar() {
     if (
       bookings.some(
         b =>
-          b.date ===
-            date &&
+          b.date === date &&
           b.status !==
             "Cancelled"
       )
@@ -1495,9 +1236,7 @@ function renderCalendar() {
       "click",
       () => {
 
-        openModal(
-          date
-        );
+        openModal(date);
 
       }
     );
@@ -1591,15 +1330,8 @@ function renderBookings() {
             b.date,
             b.time,
             b.endTime,
-
-            formatTime(
-              b.time
-            ),
-
-            formatTime(
-              b.endTime
-            ),
-
+            formatTime(b.time),
+            formatTime(b.endTime),
             b.status
 
           ]
@@ -1650,9 +1382,7 @@ function renderBookings() {
 
               <strong>
                 ${escapeHTML(
-                  formatDate(
-                    b.date
-                  )
+                  formatDate(b.date)
                 )}
               </strong>
 
@@ -1662,18 +1392,14 @@ function renderBookings() {
             <div>
 
               <strong>
-                ${escapeHTML(
-                  b.type
-                )}
+                ${escapeHTML(b.type)}
               </strong>
 
               <div class="sub">
-
                 ${escapeHTML(
                   b.customer ||
                   "No customer"
                 )}
-
               </div>
 
             </div>
@@ -1688,12 +1414,10 @@ function renderBookings() {
               </strong>
 
               <div class="sub">
-
                 ${escapeHTML(
                   b.phone ||
                   "No phone"
                 )}
-
               </div>
 
             </div>
@@ -1714,11 +1438,9 @@ function renderBookings() {
             <div>
 
               <span class="badge">
-
                 ${escapeHTML(
                   b.status
                 )}
-
               </span>
 
             </div>
@@ -1794,8 +1516,40 @@ $("search")
 
 
 /* =====================================================
-   MODAL
+   BOOKING MODAL
 ===================================================== */
+
+function setupBookingTimeInputs() {
+
+  const start =
+    $("time");
+
+  const end =
+    $("endTime");
+
+
+  if (start) {
+
+    start.type =
+      "time";
+
+    start.step =
+      "60";
+
+  }
+
+
+  if (end) {
+
+    end.type =
+      "time";
+
+    end.step =
+      "60";
+
+  }
+}
+
 
 function openModal(
   selectedDate = ""
@@ -1826,10 +1580,6 @@ function openModal(
     "Confirmed";
 
 
-  $("type").value =
-    "Anniversary Surprise";
-
-
   $("bookedBy").value =
     staffProfile?.full_name ||
     "";
@@ -1850,12 +1600,7 @@ function openModal(
     null;
 
 
-  /*
-    Make sure native time inputs
-    are present after reset.
-  */
-
-  setupTimeInputs();
+  setupBookingTimeInputs();
 }
 
 
@@ -1911,9 +1656,7 @@ $("bookingForm")
   );
 
 
-async function saveBooking(
-  event
-) {
+async function saveBooking(event) {
 
   event.preventDefault();
 
@@ -2001,42 +1744,18 @@ async function saveBooking(
     );
 
 
-  /*
-    Overnight booking.
-  */
-
   if (
     end <= start
   ) {
 
     end +=
-      24 * 60;
+      1440;
 
   }
 
 
   if (
-    end <= start
-  ) {
-
-    $("formError").textContent =
-      "Please select a valid end time.";
-
-    return;
-  }
-
-
-  /*
-    Minimum one hour.
-    Still allows EVERY MINUTE.
-
-    10:01 → 11:01 = valid
-    10:01 → 10:30 = invalid
-  */
-
-  if (
-    end - start <
-    60
+    end - start < 60
   ) {
 
     $("formError").textContent =
@@ -2047,7 +1766,7 @@ async function saveBooking(
 
 
   /*
-    Check overlap.
+    Check existing bookings.
   */
 
   const duplicate =
@@ -2056,7 +1775,6 @@ async function saveBooking(
 
         if (
           x.id === id ||
-          x.date !== b.date ||
           x.status ===
             "Cancelled"
         ) {
@@ -2066,25 +1784,74 @@ async function saveBooking(
         }
 
 
-        const existingStart =
-          x.time;
+        /*
+          Normal same-day booking.
+        */
+
+        if (
+          x.date === b.date
+        ) {
+
+          return timeRangesOverlap(
+            b.time,
+            b.endTime,
+            x.time,
+            x.endTime ||
+              minutesToTime(
+                timeToMinutes(
+                  x.time
+                ) + 1
+              )
+          );
+
+        }
 
 
-        const existingEnd =
-          x.endTime ||
-          minutesToTime(
-            timeToMinutes(
-              x.time
-            ) + 30
+        /*
+          Overnight booking from
+          previous date.
+        */
+
+        const previousDate =
+          getPreviousDateString(
+            b.date
           );
 
 
-        return timeRangesOverlap(
-          b.time,
-          b.endTime,
-          existingStart,
-          existingEnd
-        );
+        if (
+          x.date === previousDate &&
+          x.endTime
+        ) {
+
+          const xStart =
+            timeToMinutes(
+              x.time
+            );
+
+          const xEnd =
+            timeToMinutes(
+              x.endTime
+            );
+
+
+          if (
+            xEnd <= xStart
+          ) {
+
+            const newStart =
+              start;
+
+            return (
+              newStart <
+              xEnd
+            );
+
+          }
+
+        }
+
+
+        return false;
 
       }
     );
@@ -2093,19 +1860,14 @@ async function saveBooking(
   if (duplicate) {
 
     $("formError").textContent =
-      `
-        This time overlaps with
-        ${duplicate.bookedBy}'s booking
-        (${formatTimeRange(
+      `This time overlaps with ${
+        duplicate.bookedBy
+      }'s booking (${
+        formatTimeRange(
           duplicate.time,
-          duplicate.endTime ||
-          minutesToTime(
-            timeToMinutes(
-              duplicate.time
-            ) + 30
-          )
-        )}).
-      `;
+          duplicate.endTime
+        )
+      }).`;
 
     return;
   }
@@ -2159,16 +1921,11 @@ async function saveBooking(
       await db
         .from("bookings")
         .update(row)
-        .eq(
-          "id",
-          id
-        )
+        .eq("id", id)
         .select()
         .single();
 
-  }
-
-  else {
+  } else {
 
     result =
       await db
@@ -2248,22 +2005,6 @@ window.editBooking =
       b.date;
 
 
-    setupTimeInputs();
-
-
-    $("time").value =
-      b.time;
-
-
-    $("endTime").value =
-      b.endTime ||
-      minutesToTime(
-        timeToMinutes(
-          b.time
-        ) + 60
-      );
-
-
     $("bookedBy").value =
       b.bookedBy;
 
@@ -2278,6 +2019,22 @@ window.editBooking =
 
     $("notes").value =
       b.notes;
+
+
+    setupBookingTimeInputs();
+
+
+    $("time").value =
+      b.time;
+
+
+    $("endTime").value =
+      b.endTime ||
+      minutesToTime(
+        timeToMinutes(
+          b.time
+        ) + 60
+      );
 
 
     $("formError").textContent =
@@ -2305,16 +2062,14 @@ window.deleteBooking =
     }
 
 
-    const ok =
-      confirm(
+    if (
+      !confirm(
         `Delete booking for ${
           booking.customer ||
           "this customer"
         }?`
-      );
-
-
-    if (!ok) {
+      )
+    ) {
       return;
     }
 
@@ -2344,17 +2099,20 @@ window.deleteBooking =
     await loadBookings();
 
     renderAll();
-
   };
 
 
 /* =====================================================
    AVAILABILITY
+   KEEP THE DATE STRIP
+   SHOW 1 YEAR
 ===================================================== */
 
 function renderAvailability() {
 
-  if (!selectedAvailabilityDate) {
+  if (
+    !selectedAvailabilityDate
+  ) {
 
     selectedAvailabilityDate =
       getLocalDateString();
@@ -2369,7 +2127,8 @@ function renderAvailability() {
 
 
 /* =====================================================
-   ONE YEAR DATE STRIP
+   DATE STRIP
+   365 DAYS
 ===================================================== */
 
 function renderAvailabilityDates() {
@@ -2387,13 +2146,14 @@ function renderAvailabilityDates() {
     "";
 
 
-  const base =
+  const today =
     new Date();
 
 
   /*
-    ONE FULL YEAR
-    365 DAYS
+    KEEP THE DATE STRIP.
+
+    1 full year.
   */
 
   for (
@@ -2404,9 +2164,9 @@ function renderAvailabilityDates() {
 
     const date =
       new Date(
-        base.getFullYear(),
-        base.getMonth(),
-        base.getDate() + i
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + i
       );
 
 
@@ -2447,6 +2207,14 @@ function renderAvailabilityDates() {
     }
 
 
+    /*
+      Show date like:
+
+      WED
+      30
+      SEP
+    */
+
     button.innerHTML = `
 
       <span class="day-name">
@@ -2457,7 +2225,7 @@ function renderAvailabilityDates() {
             weekday:
               "short"
           }
-        )}
+        ).toUpperCase()}
 
       </span>
 
@@ -2512,25 +2280,13 @@ function renderAvailabilityDates() {
 
 
 /* =====================================================
-   CHECK BOOKED TIME
+   CHECK BOOKED MINUTE
 ===================================================== */
 
-function isTimeBooked(
+function isMinuteBooked(
   date,
-  time
+  minute
 ) {
-
-  const target =
-    timeToMinutes(
-      time
-    );
-
-
-  const previousDate =
-    getPreviousDateString(
-      date
-    );
-
 
   return bookings.some(
     b => {
@@ -2561,7 +2317,7 @@ function isTimeBooked(
 
 
       /*
-        Booking starts on selected date.
+        Same date.
       */
 
       if (
@@ -2577,35 +2333,38 @@ function isTimeBooked(
           */
 
           return (
-            target >= start ||
-            target < end
+            minute >= start ||
+            minute < end
           );
 
         }
 
 
         return (
-          target >= start &&
-          target < end
+          minute >= start &&
+          minute < end
         );
 
       }
 
 
       /*
-        Previous day's overnight
-        booking continues into
-        selected date.
+        Previous day overnight.
       */
 
+      const previousDate =
+        getPreviousDateString(
+          date
+        );
+
+
       if (
-        b.date ===
-          previousDate &&
+        b.date === previousDate &&
         end <= start
       ) {
 
         return (
-          target < end
+          minute < end
         );
 
       }
@@ -2619,7 +2378,9 @@ function isTimeBooked(
 
 
 /* =====================================================
-   AVAILABILITY CLOCK UI
+   AVAILABILITY TIME SLOTS
+   EVERY MINUTE
+   12-HOUR AM/PM
 ===================================================== */
 
 function renderAvailabilitySlots() {
@@ -2643,7 +2404,222 @@ function renderAvailabilitySlots() {
 
 
   /*
-    Get bookings for selected date.
+    10:00 AM → 1:00 AM.
+
+    EVERY MINUTE.
+
+    This means:
+
+    10:00 AM
+    10:01 AM
+    10:02 AM
+    10:03 AM
+    ...
+    12:00 PM
+    12:01 PM
+    ...
+    11:59 PM
+    12:00 AM
+    12:01 AM
+    ...
+    1:00 AM
+  */
+
+
+  let html = `
+
+    <div class="availability-header">
+
+      <h2 class="availability-title">
+
+        ${formatDate(date)}
+
+      </h2>
+
+      <p class="availability-help">
+
+        Tap a time to start, then tap another
+        time to set how long you need.
+
+      </p>
+
+    </div>
+
+
+    <div
+      class="availability-time-grid"
+      id="availabilityTimeGrid"
+    >
+
+  `;
+
+
+  /*
+    10 AM = 600
+    1 AM next day = 1500
+  */
+
+  for (
+    let minute = 600;
+    minute <= 1500;
+    minute++
+  ) {
+
+    const actualMinute =
+      minute % 1440;
+
+
+    const time =
+      minutesToTime(
+        actualMinute
+      );
+
+
+    const booked =
+      isMinuteBooked(
+        date,
+        actualMinute
+      );
+
+
+    const selectedStart =
+      selectedStartTime ===
+      time;
+
+
+    const selectedEnd =
+      selectedEndTime ===
+      time;
+
+
+    let selectedClass =
+      "";
+
+
+    if (selectedStart) {
+
+      selectedClass =
+        "selected-start";
+
+    }
+
+
+    if (selectedEnd) {
+
+      selectedClass =
+        "selected-end";
+
+    }
+
+
+    html += `
+
+      <button
+
+        type="button"
+
+        class="
+          availability-time-slot
+          ${booked ? "booked" : ""}
+          ${selectedClass}
+        "
+
+        data-time="${time}"
+
+        ${
+          booked
+            ? "disabled"
+            : ""
+        }
+
+      >
+
+        ${formatTime(time)}
+
+      </button>
+
+    `;
+
+  }
+
+
+  html += `
+
+    </div>
+
+
+    <div
+      class="availability-selection"
+      id="availabilitySelection"
+    >
+
+      ${
+        selectedStartTime
+          ? `
+
+            <div>
+
+              <strong>
+                Start:
+              </strong>
+
+              ${formatTime(
+                selectedStartTime
+              )}
+
+              ${
+                selectedEndTime
+                  ? `
+
+                    <br>
+
+                    <strong>
+                      End:
+                    </strong>
+
+                    ${formatTime(
+                      selectedEndTime
+                    )}
+
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `
+          : `
+            <span>
+              Select a start time.
+            </span>
+          `
+      }
+
+
+      ${
+        selectedStartTime &&
+        selectedEndTime
+          ? `
+
+            <button
+              type="button"
+              class="create"
+              id="bookAvailabilityButton"
+            >
+              Book This Time →
+            </button>
+
+          `
+          : ""
+      }
+
+    </div>
+
+  `;
+
+
+  /*
+    Existing bookings.
   */
 
   const dayBookings =
@@ -2656,99 +2632,10 @@ function renderAvailabilitySlots() {
       )
       .sort(
         (a, b) =>
-          timeToMinutes(
-            a.time
-          ) -
-          timeToMinutes(
-            b.time
-          )
+          timeToMinutes(a.time) -
+          timeToMinutes(b.time)
       );
 
-
-  let html = `
-
-    <h2 class="availability-title">
-
-      ${formatDate(date)}
-
-    </h2>
-
-
-    <div class="availability-clock-panel">
-
-      <div class="clock-field">
-
-        <label>
-          Start Time
-        </label>
-
-        <input
-          id="availabilityStart"
-          type="time"
-          step="60"
-        >
-
-      </div>
-
-
-      <div class="clock-separator">
-        →
-      </div>
-
-
-      <div class="clock-field">
-
-        <label>
-          End Time
-        </label>
-
-        <input
-          id="availabilityEnd"
-          type="time"
-          step="60"
-        >
-
-      </div>
-
-    </div>
-
-
-    <div
-      id="availabilityStatus"
-      class="availability-status"
-    ></div>
-
-
-    <div
-      class="availability-actions"
-    >
-
-      <button
-        class="create"
-        id="checkAvailabilityBtn"
-        type="button"
-      >
-        Check Availability
-      </button>
-
-
-      <button
-        class="create"
-        id="bookAvailabilityBtn"
-        type="button"
-        style="display:none;"
-      >
-        Book This Time →
-      </button>
-
-    </div>
-
-  `;
-
-
-  /*
-    Existing bookings.
-  */
 
   if (
     dayBookings.length
@@ -2779,9 +2666,11 @@ function renderAvailabilitySlots() {
             <div>
 
               <strong>
+
                 ${escapeHTML(
                   b.type
                 )}
+
               </strong>
 
               <div class="sub">
@@ -2823,504 +2712,237 @@ function renderAvailabilitySlots() {
 
   }
 
-  else {
-
-    html += `
-
-      <div
-        class="availability-free"
-      >
-
-        No bookings on this date.
-
-      </div>
-
-    `;
-
-  }
-
 
   container.innerHTML =
     html;
 
 
   /*
-    Restore selected values.
+    Add click handlers to
+    every minute slot.
+  */
+
+  const slots =
+    container.querySelectorAll(
+      ".availability-time-slot"
+    );
+
+
+  slots.forEach(
+    slot => {
+
+      slot.addEventListener(
+        "click",
+        () => {
+
+          const time =
+            slot.dataset.time;
+
+
+          handleAvailabilityTimeClick(
+            time
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  /*
+    Book button.
+  */
+
+  const bookButton =
+    $("bookAvailabilityButton");
+
+
+  if (bookButton) {
+
+    bookButton.addEventListener(
+      "click",
+      () => {
+
+        if (
+          !selectedStartTime ||
+          !selectedEndTime
+        ) {
+          return;
+        }
+
+
+        openModal(
+          selectedAvailabilityDate
+        );
+
+
+        $("time").value =
+          selectedStartTime;
+
+
+        $("endTime").value =
+          selectedEndTime;
+
+      }
+    );
+
+  }
+}
+
+
+/* =====================================================
+   TIME SLOT CLICK
+===================================================== */
+
+function handleAvailabilityTimeClick(
+  time
+) {
+
+  /*
+    FIRST CLICK:
+    Start time.
   */
 
   if (
-    selectedStartTime
-  ) {
-
-    $("availabilityStart").value =
-      selectedStartTime;
-
-  }
-
-
-  if (
+    !selectedStartTime ||
     selectedEndTime
   ) {
 
-    $("availabilityEnd").value =
-      selectedEndTime;
+    selectedStartTime =
+      time;
+
+    selectedEndTime =
+      null;
+
+    renderAvailability();
+
+    return;
+  }
+
+
+  /*
+    SECOND CLICK:
+    End time.
+  */
+
+  const start =
+    timeToMinutes(
+      selectedStartTime
+    );
+
+
+  let end =
+    timeToMinutes(
+      time
+    );
+
+
+  /*
+    If end is after midnight,
+    move it to next day.
+  */
+
+  if (
+    end <= start
+  ) {
+
+    end += 1440;
 
   }
 
 
-  const startInput =
-    $("availabilityStart");
+  /*
+    Minimum 1 hour.
+  */
 
+  if (
+    end - start < 60
+  ) {
 
-  const endInput =
-    $("availabilityEnd");
+    alert(
+      "Minimum booking duration is 1 hour."
+    );
 
-
-  const checkButton =
-    $("checkAvailabilityBtn");
-
-
-  const bookButton =
-    $("bookAvailabilityBtn");
-
-
-  const status =
-    $("availabilityStatus");
+    return;
+  }
 
 
   /*
-    Check availability.
+    Check every minute for conflicts.
   */
 
-  checkButton.addEventListener(
-    "click",
-    () => {
-
-      const start =
-        startInput.value;
+  let conflict =
+    false;
 
 
-      const end =
-        endInput.value;
+  for (
+    let minute = start;
+    minute < end;
+    minute++
+  ) {
+
+    let checkDate =
+      selectedAvailabilityDate;
 
 
-      if (!start) {
-
-        status.textContent =
-          "Please select a start time.";
-
-        status.className =
-          "availability-status unavailable";
-
-        bookButton.style.display =
-          "none";
-
-        return;
-      }
+    let checkMinute =
+      minute;
 
 
-      if (!end) {
+    if (
+      checkMinute >= 1440
+    ) {
 
-        status.textContent =
-          "Please select an end time.";
+      checkMinute -=
+        1440;
 
-        status.className =
-          "availability-status unavailable";
-
-        bookButton.style.display =
-          "none";
-
-        return;
-      }
-
-
-      const startMinutes =
-        timeToMinutes(
-          start
+      checkDate =
+        getNextDateString(
+          selectedAvailabilityDate
         );
-
-
-      let endMinutes =
-        timeToMinutes(
-          end
-        );
-
-
-      /*
-        Overnight.
-      */
-
-      if (
-        endMinutes <=
-        startMinutes
-      ) {
-
-        endMinutes +=
-          1440;
-
-      }
-
-
-      if (
-        endMinutes <=
-        startMinutes
-      ) {
-
-        status.textContent =
-          "Please select a valid end time.";
-
-        status.className =
-          "availability-status unavailable";
-
-        bookButton.style.display =
-          "none";
-
-        return;
-      }
-
-
-      /*
-        Minimum 1 hour.
-      */
-
-      if (
-        endMinutes -
-        startMinutes <
-        60
-      ) {
-
-        status.textContent =
-          "Minimum booking duration is 1 hour.";
-
-        status.className =
-          "availability-status unavailable";
-
-        bookButton.style.display =
-          "none";
-
-        return;
-      }
-
-
-      /*
-        Check every MINUTE.
-
-        No 30-minute restriction.
-      */
-
-      let conflict =
-        null;
-
-
-      for (
-        let minute =
-          startMinutes;
-
-        minute <
-          endMinutes;
-
-        minute++
-      ) {
-
-        let checkDate =
-          date;
-
-        let checkMinute =
-          minute;
-
-
-        /*
-          If the selected range
-          crosses midnight.
-        */
-
-        if (
-          checkMinute >=
-          1440
-        ) {
-
-          checkMinute -=
-            1440;
-
-          checkDate =
-            new Date(
-              date +
-              "T00:00:00"
-            );
-
-          checkDate.setDate(
-            checkDate.getDate() +
-            1
-          );
-
-          checkDate =
-            [
-              checkDate.getFullYear(),
-
-              String(
-                checkDate.getMonth() +
-                1
-              ).padStart(
-                2,
-                "0"
-              ),
-
-              String(
-                checkDate.getDate()
-              ).padStart(
-                2,
-                "0"
-              )
-
-            ].join("-");
-
-        }
-
-
-        const checkTime =
-          minutesToTime(
-            checkMinute
-          );
-
-
-        const found =
-          bookings.find(
-            b => {
-
-              if (
-                b.status ===
-                  "Cancelled" ||
-                !b.time
-              ) {
-
-                return false;
-
-              }
-
-
-              const bookingStart =
-                timeToMinutes(
-                  b.time
-                );
-
-
-              let bookingEnd =
-                b.endTime
-                  ? timeToMinutes(
-                      b.endTime
-                    )
-                  : bookingStart + 1;
-
-
-              /*
-                Same date.
-              */
-
-              if (
-                b.date ===
-                checkDate
-              ) {
-
-                if (
-                  bookingEnd <=
-                  bookingStart
-                ) {
-
-                  return (
-                    checkMinute >=
-                      bookingStart ||
-                    checkMinute <
-                      bookingEnd
-                  );
-
-                }
-
-
-                return (
-                  checkMinute >=
-                    bookingStart &&
-                  checkMinute <
-                    bookingEnd
-                );
-
-              }
-
-
-              /*
-                Previous day overnight.
-              */
-
-              const previousDate =
-                getPreviousDateString(
-                  checkDate
-                );
-
-
-              if (
-                b.date ===
-                  previousDate &&
-                bookingEnd <=
-                  bookingStart
-              ) {
-
-                return (
-                  checkMinute <
-                  bookingEnd
-                );
-
-              }
-
-
-              return false;
-
-            }
-          );
-
-
-        if (found) {
-
-          conflict =
-            found;
-
-          break;
-
-        }
-
-      }
-
-
-      if (conflict) {
-
-        status.innerHTML = `
-
-          <strong>
-            Not Available
-          </strong>
-
-          <br>
-
-          This time overlaps with:
-
-          <b>
-            ${escapeHTML(
-              conflict.type
-            )}
-          </b>
-
-          <br>
-
-          ${escapeHTML(
-            formatTimeRange(
-              conflict.time,
-              conflict.endTime
-            )
-          )}
-
-        `;
-
-
-        status.className =
-          "availability-status unavailable";
-
-
-        bookButton.style.display =
-          "none";
-
-
-        return;
-
-      }
-
-
-      /*
-        AVAILABLE
-      */
-
-      selectedStartTime =
-        start;
-
-      selectedEndTime =
-        end;
-
-
-      status.innerHTML = `
-
-        <strong>
-          Available ✓
-        </strong>
-
-        <br>
-
-        ${escapeHTML(
-          formatTimeRange(
-            start,
-            end
-          )
-        )}
-
-      `;
-
-
-      status.className =
-        "availability-status available";
-
-
-      bookButton.style.display =
-        "inline-flex";
 
     }
-  );
+
+
+    if (
+      isMinuteBooked(
+        checkDate,
+        checkMinute
+      )
+    ) {
+
+      conflict =
+        true;
+
+      break;
+
+    }
+
+  }
+
+
+  if (conflict) {
+
+    alert(
+      "This time range contains an existing booking."
+    );
+
+    return;
+  }
 
 
   /*
-    Book selected time.
+    Save selected end.
   */
 
-  bookButton.addEventListener(
-    "click",
-    () => {
-
-      const start =
-        startInput.value;
+  selectedEndTime =
+    minutesToTime(
+      end % 1440
+    );
 
 
-      const end =
-        endInput.value;
-
-
-      if (
-        !start ||
-        !end
-      ) {
-        return;
-      }
-
-
-      selectedStartTime =
-        start;
-
-
-      selectedEndTime =
-        end;
-
-
-      openModal(
-        selectedAvailabilityDate
-      );
-
-
-      setupTimeInputs();
-
-
-      $("time").value =
-        start;
-
-
-      $("endTime").value =
-        end;
-
-    }
-  );
+  renderAvailability();
 }
 
 
@@ -3357,7 +2979,6 @@ function renderCustomers() {
         map.set(
           key,
           {
-
             name:
               b.customer ||
               "Unknown Customer",
@@ -3368,7 +2989,6 @@ function renderCustomers() {
 
             bookings:
               0
-
           }
         );
 
@@ -3403,74 +3023,57 @@ function renderCustomers() {
   container.innerHTML =
     list
       .map(
-        c => {
+        c => `
 
-          const initials =
-            c.name
-              .split(/\s+/)
-              .filter(Boolean)
-              .slice(0, 2)
-              .map(
-                x => x[0]
-              )
-              .join("")
-              .toUpperCase();
-
-
-          return `
+          <div class="customer-card">
 
             <div
-              class="customer-card"
+              class="customer-avatar"
             >
 
-              <div
-                class="customer-avatar"
-              >
-
-                ${escapeHTML(
-                  initials ||
+              ${escapeHTML(
+                c.name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map(
+                    x => x[0]
+                  )
+                  .join("")
+                  .toUpperCase() ||
                   "C"
-                )}
-
-              </div>
-
-
-              <h3>
-
-                ${escapeHTML(
-                  c.name
-                )}
-
-              </h3>
-
-
-              <p>
-
-                ${escapeHTML(
-                  c.phone ||
-                  "No phone number"
-                )}
-
-              </p>
-
-
-              <p>
-
-                ${c.bookings}
-
-                booking${
-                  c.bookings === 1
-                    ? ""
-                    : "s"
-                }
-
-              </p>
+              )}
 
             </div>
 
-          `;
 
-        }
+            <h3>
+              ${escapeHTML(
+                c.name
+              )}
+            </h3>
+
+
+            <p>
+              ${escapeHTML(
+                c.phone ||
+                "No phone number"
+              )}
+            </p>
+
+
+            <p>
+              ${c.bookings}
+              booking${
+                c.bookings === 1
+                  ? ""
+                  : "s"
+              }
+            </p>
+
+          </div>
+
+        `
       )
       .join("");
 }
@@ -3521,26 +3124,6 @@ function renderReports() {
         b.status ===
         "Cancelled"
     );
-
-
-  const uniqueCustomers =
-    new Set(
-      active
-        .map(
-          b =>
-            b.phone ||
-            b.customer
-        )
-        .filter(Boolean)
-    ).size;
-
-
-  const birthdayCount =
-    active.filter(
-      b =>
-        b.type ===
-        "Birthday Surprise"
-    ).length;
 
 
   container.innerHTML = `
@@ -3596,32 +3179,6 @@ function renderReports() {
 
     </div>
 
-
-    <div class="report-card">
-
-      <strong>
-        ${uniqueCustomers}
-      </strong>
-
-      <span>
-        Unique Customers
-      </span>
-
-    </div>
-
-
-    <div class="report-card">
-
-      <strong>
-        ${birthdayCount}
-      </strong>
-
-      <span>
-        Birthday Surprises
-      </span>
-
-    </div>
-
   `;
 }
 
@@ -3630,14 +3187,10 @@ function renderReports() {
    NAVIGATION
 ===================================================== */
 
-function showPage(
-  page
-) {
+function showPage(page) {
 
   document
-    .querySelectorAll(
-      ".page"
-    )
+    .querySelectorAll(".page")
     .forEach(
       section => {
 
@@ -3680,18 +3233,13 @@ function showPage(
 
 
   if (
-    window.innerWidth <=
-    900
+    window.innerWidth <= 900
   ) {
 
     document
-      .querySelector(
-        "aside"
-      )
+      .querySelector("aside")
       ?.classList
-      .remove(
-        "open"
-      );
+      .remove("open");
 
   }
 
@@ -3759,13 +3307,9 @@ $("menu")
     () => {
 
       document
-        .querySelector(
-          "aside"
-        )
+        .querySelector("aside")
         ?.classList
-        .toggle(
-          "open"
-        );
+        .toggle("open");
 
     }
   );
