@@ -1445,7 +1445,6 @@ function openModal(
   selectedStartTime = null;
   selectedEndTime = null;
 
-  renderBookingTimePicker();
 
 }
 
@@ -2014,23 +2013,207 @@ function isTimeBooked(date, time) {
 
 
 /* =====================================================
-   AVAILABILITY TIME GRID
+   AVAILABILITY CLOCK + TIME GRID
 ===================================================== */
+
+function normalizeAvailabilityEnd(start, end) {
+
+  let s = timeToMinutes(start);
+  let e = timeToMinutes(end);
+
+  if (e <= s) {
+    e += 24 * 60;
+  }
+
+  return {
+    start: s,
+    end: e
+  };
+}
+
+
+function getDateDifference(fromDate, toDate) {
+
+  const a = new Date(fromDate + "T00:00:00");
+  const b = new Date(toDate + "T00:00:00");
+
+  return Math.round(
+    (b - a) / (24 * 60 * 60 * 1000)
+  );
+}
+
+
+function getBookingIntervalForDate(booking, selectedDate) {
+
+  if (!booking.date || !booking.time) {
+    return null;
+  }
+
+  const dayOffset = getDateDifference(
+    selectedDate,
+    booking.date
+  );
+
+  /* Ignore bookings more than one day away. */
+  if (dayOffset < -1 || dayOffset > 1) {
+    return null;
+  }
+
+  const start = timeToMinutes(booking.time);
+  let end = booking.endTime
+    ? timeToMinutes(booking.endTime)
+    : start + 30;
+
+  if (end <= start) {
+    end += 24 * 60;
+  }
+
+  const absoluteStart =
+    dayOffset * 24 * 60 + start;
+
+  const absoluteEnd =
+    dayOffset * 24 * 60 + end;
+
+  return {
+    start: absoluteStart,
+    end: absoluteEnd
+  };
+}
+
+
+function isAvailabilityRangeFree(
+  date,
+  startTime,
+  endTime
+) {
+
+  if (!startTime || !endTime) {
+    return false;
+  }
+
+  const range = normalizeAvailabilityEnd(
+    startTime,
+    endTime
+  );
+
+  return !bookings.some(booking => {
+
+    if (booking.status === "Cancelled") {
+      return false;
+    }
+
+    const interval =
+      getBookingIntervalForDate(
+        booking,
+        date
+      );
+
+    if (!interval) {
+      return false;
+    }
+
+    return (
+      range.start < interval.end &&
+      range.end > interval.start
+    );
+
+  });
+}
+
+
+function updateAvailabilityClockValues() {
+
+  const startInput =
+    $("availStartTime");
+
+  const endInput =
+    $("availEndTime");
+
+  if (startInput) {
+    startInput.value =
+      selectedStartTime || "";
+  }
+
+  if (endInput) {
+    endInput.value =
+      selectedEndTime || "";
+  }
+}
+
 
 function renderAvailabilitySlots() {
 
-  const container = $("availInfo");
+  const container =
+    $("availInfo");
 
   if (!container || !selectedAvailabilityDate) {
     return;
   }
 
-  const date = selectedAvailabilityDate;
+  const date =
+    selectedAvailabilityDate;
 
   let html = `
+
+    <div class="availability-clock-panel">
+
+      <div class="clock-field">
+
+        <label for="availStartTime">
+          Start Time
+        </label>
+
+        <input
+          id="availStartTime"
+          type="time"
+          step="60"
+          aria-label="Availability start time"
+        >
+
+      </div>
+
+      <div class="clock-arrow">
+        →
+      </div>
+
+      <div class="clock-field">
+
+        <label for="availEndTime">
+          End Time
+        </label>
+
+        <input
+          id="availEndTime"
+          type="time"
+          step="60"
+          aria-label="Availability end time"
+        >
+
+      </div>
+
+      <button
+        type="button"
+        class="availability-check-btn"
+        onclick="checkAvailabilityRange()"
+      >
+        Check Availability
+      </button>
+
+    </div>
+
+    <div class="availability-clock-note">
+      Choose any time from 10:00 AM to 1:00 AM. You can select every minute.
+    </div>
+
+    <div
+      id="availabilityRangeStatus"
+      class="availability-status"
+    ></div>
+
     <div class="availability-header">
 
       <div>
+
         <span class="section-label">
           SELECT TIME
         </span>
@@ -2038,6 +2221,7 @@ function renderAvailabilitySlots() {
         <h2>
           ${formatDate(date)}
         </h2>
+
       </div>
 
       <p class="availability-instruction">
@@ -2050,38 +2234,72 @@ function renderAvailabilitySlots() {
     <div class="availability-time-grid">
   `;
 
-  /* 10:00 AM to 1:00 AM next day, every 30 minutes */
-  for (let minutes = 10 * 60; minutes <= 25 * 60; minutes += 30) {
+  /*
+    Availability grid:
+    10:00 AM → 1:00 AM next day,
+    every 30 minutes.
+  */
+  for (
+    let minutes = 10 * 60;
+    minutes <= 25 * 60;
+    minutes += 30
+  ) {
 
-    const time = minutesToTime(minutes);
-    const booked = isTimeBooked(date, time);
-    const isStart = selectedStartTime === time;
-    const isEnd = selectedEndTime === time;
+    const time =
+      minutesToTime(minutes);
 
-    let disabled = booked;
+    const booked =
+      isTimeBooked(
+        date,
+        time
+      );
 
-    /* Once a start is selected, only later times can be an end time. */
-    if (selectedStartTime && !selectedEndTime) {
+    const isStart =
+      selectedStartTime === time;
 
-      const startMinutes = timeToMinutes(selectedStartTime);
-      let currentMinutes = timeToMinutes(time);
+    const isEnd =
+      selectedEndTime === time;
 
-      /*
-        Times after midnight (12:00 AM → 1:00 AM)
-        belong to the next day when the start is in
-        the evening.
-      */
-      if (currentMinutes <= startMinutes) {
-        currentMinutes += 24 * 60;
+    let disabled =
+      booked;
+
+    /*
+      After a start is selected,
+      only times at least one hour later
+      are valid end times.
+    */
+    if (
+      selectedStartTime &&
+      !selectedEndTime
+    ) {
+
+      const startMinutes =
+        timeToMinutes(
+          selectedStartTime
+        );
+
+      let currentMinutes =
+        timeToMinutes(time);
+
+      if (
+        currentMinutes <=
+        startMinutes
+      ) {
+        currentMinutes +=
+          24 * 60;
       }
 
-      if (currentMinutes < startMinutes + 60) {
+      if (
+        currentMinutes <
+        startMinutes + 60
+      ) {
         disabled = true;
       }
 
     }
 
-    let classes = "availability-time";
+    let classes =
+      "availability-time";
 
     if (booked) {
       classes += " booked";
@@ -2096,6 +2314,7 @@ function renderAvailabilitySlots() {
     }
 
     html += `
+
       <button
         type="button"
         class="${classes}"
@@ -2104,288 +2323,308 @@ function renderAvailabilitySlots() {
       >
         ${formatTime(time)}
       </button>
-    `;
 
+    `;
   }
 
-  html += `</div>`;
+  html += `
+    </div>
+  `;
 
   if (selectedStartTime) {
 
     html += `
+
       <div class="availability-selection">
 
         <div class="availability-selected-times">
 
           <div>
             <span>START TIME</span>
-            <strong>${formatTime(selectedStartTime)}</strong>
+            <strong>
+              ${formatTime(selectedStartTime)}
+            </strong>
           </div>
 
-          <div class="selection-arrow">→</div>
+          <div class="selection-arrow">
+            →
+          </div>
 
           <div>
             <span>END TIME</span>
             <strong>
-              ${selectedEndTime ? formatTime(selectedEndTime) : "Select end"}
+              ${
+                selectedEndTime
+                  ? formatTime(selectedEndTime)
+                  : "Select end"
+              }
             </strong>
           </div>
 
         </div>
 
-        ${selectedEndTime ? `
-          <button
-            type="button"
-            class="create"
-            onclick="bookSelectedAvailability()"
-          >
-            Continue Booking →
-          </button>
-        ` : `
-          <div class="availability-next">
-            Now select the end time.
-          </div>
-        `}
+        ${
+          selectedEndTime
+            ? `
+              <button
+                type="button"
+                class="create"
+                onclick="bookSelectedAvailability()"
+              >
+                Continue Booking →
+              </button>
+            `
+            : `
+              <div class="availability-next">
+                Now select the end time.
+              </div>
+            `
+        }
 
       </div>
+
     `;
   }
 
-  container.innerHTML = html;
+  container.innerHTML =
+    html;
+
+  updateAvailabilityClockValues();
 
 }
 
 
-/* =====================================================
-   AVAILABILITY TIME SELECTION
-===================================================== */
+window.checkAvailabilityRange =
+  function() {
 
-window.selectAvailabilityTime = function(time) {
+    const startInput =
+      $("availStartTime");
 
-  /* First click = start */
-  if (!selectedStartTime || selectedEndTime) {
+    const endInput =
+      $("availEndTime");
 
-    selectedStartTime = time;
-    selectedEndTime = null;
+    const status =
+      $("availabilityRangeStatus");
 
-    renderAvailability();
-    return;
-  }
+    if (
+      !startInput ||
+      !endInput ||
+      !status
+    ) {
+      return;
+    }
 
-  const start = timeToMinutes(selectedStartTime);
-  let end = timeToMinutes(time);
+    const start =
+      startInput.value;
 
-  /*
-    Support overnight selection.
-    Example: 10:00 PM → 1:00 AM.
-  */
-  if (end <= start) {
-    end += 24 * 60;
-  }
+    const end =
+      endInput.value;
 
-  if (end - start < 60) {
-    alert("Minimum booking duration is 1 hour.");
-    return;
-  }
+    status.className =
+      "availability-status";
 
-  /* Check every 30-minute block in the requested range. */
-  for (let t = start; t < end; t += 30) {
+    if (!start || !end) {
 
-    if (isTimeBooked(selectedAvailabilityDate, minutesToTime(t))) {
+      status.classList.add(
+        "unavailable"
+      );
 
-      alert("This time range contains an already booked time.");
+      status.textContent =
+        "Please select both a start time and an end time.";
 
-      selectedEndTime = null;
+      return;
+    }
+
+    const range =
+      normalizeAvailabilityEnd(
+        start,
+        end
+      );
+
+    if (
+      range.end - range.start < 60
+    ) {
+
+      status.classList.add(
+        "unavailable"
+      );
+
+      status.textContent =
+        "Minimum booking duration is 1 hour.";
+
+      return;
+    }
+
+    /*
+      Availability window is 10:00 AM → 1:00 AM.
+      1:00 AM is represented as 25:00 on the timeline.
+    */
+    if (
+      range.start < 10 * 60 ||
+      range.start > 25 * 60 ||
+      range.end > 25 * 60
+    ) {
+
+      status.classList.add(
+        "unavailable"
+      );
+
+      status.textContent =
+        "Please choose a time between 10:00 AM and 1:00 AM.";
+
+      return;
+    }
+
+    if (
+      !isAvailabilityRangeFree(
+        selectedAvailabilityDate,
+        start,
+        end
+      )
+    ) {
+
+      status.classList.add(
+        "unavailable"
+      );
+
+      status.textContent =
+        "This time range is not available because it overlaps an existing booking.";
+
+      return;
+    }
+
+    selectedStartTime =
+      start;
+
+    selectedEndTime =
+      end;
+
+    status.classList.add(
+      "available"
+    );
+
+    status.textContent =
+      `Available: ${formatTime(start)} → ${formatTime(end)}`;
+
+    renderAvailabilitySlots();
+
+    const updatedStatus =
+      $("availabilityRangeStatus");
+
+    if (updatedStatus) {
+      updatedStatus.classList.add(
+        "available"
+      );
+      updatedStatus.textContent =
+        `Available: ${formatTime(start)} → ${formatTime(end)}`;
+    }
+
+  };
+
+
+window.selectAvailabilityTime =
+  function(time) {
+
+    /* First click = start. */
+    if (
+      !selectedStartTime ||
+      selectedEndTime
+    ) {
+
+      selectedStartTime =
+        time;
+
+      selectedEndTime =
+        null;
+
       renderAvailability();
       return;
     }
 
-  }
+    const start =
+      timeToMinutes(
+        selectedStartTime
+      );
 
-  selectedEndTime = time;
+    let end =
+      timeToMinutes(time);
 
-  renderAvailability();
-
-};
-
-
-window.bookSelectedAvailability = function() {
-
-  if (!selectedStartTime || !selectedEndTime) {
-    return;
-  }
-
-  openModal(selectedAvailabilityDate);
-
-  $("time").value = selectedStartTime;
-  $("endTime").value = selectedEndTime;
-
-  renderBookingTimePicker();
-
-};
-
-
-/* =====================================================
-   BOOKING MODAL TIME PICKER
-===================================================== */
-
-function renderBookingTimePicker() {
-
-  const startContainer = $("bookingStartTimes");
-  const endContainer = $("bookingEndTimes");
-
-  if (!startContainer || !endContainer) {
-    return;
-  }
-
-  const currentStart = $("time").value;
-  const currentEnd = $("endTime").value;
-
-  let startHTML = "";
-  let endHTML = "";
-
-  /* Start times: 10:00 AM → 1:00 AM next day */
-  for (let minutes = 10 * 60; minutes <= 25 * 60; minutes += 30) {
-
-    const time = minutesToTime(minutes);
-    const selected = currentStart === time;
-
-    startHTML += `
-      <button
-        type="button"
-        class="booking-time-button ${selected ? "selected" : ""}"
-        onclick="selectBookingStartTime('${time}')"
-      >
-        ${formatTime(time)}
-      </button>
-    `;
-  }
-
-  /* End times: 10:00 AM → 1:00 AM next day */
-  for (let minutes = 10 * 60; minutes <= 25 * 60; minutes += 30) {
-
-    const time = minutesToTime(minutes);
-    let disabled = false;
-
-    if (currentStart) {
-
-      const startMinutes = timeToMinutes(currentStart);
-      let endMinutes = timeToMinutes(time);
-
-      /* Allow an end time after midnight. */
-      if (endMinutes <= startMinutes) {
-        endMinutes += 24 * 60;
-      }
-
-      if (endMinutes - startMinutes < 60) {
-        disabled = true;
-      }
-
+    if (
+      end <= start
+    ) {
+      end +=
+        24 * 60;
     }
 
-    const selected = currentEnd === time;
+    if (
+      end - start < 60
+    ) {
 
-    endHTML += `
-      <button
-        type="button"
-        class="booking-time-button ${selected ? "selected" : ""}"
-        ${disabled ? "disabled" : ""}
-        onclick="selectBookingEndTime('${time}')"
-      >
-        ${formatTime(time)}
-      </button>
-    `;
-  }
+      alert(
+        "Minimum booking duration is 1 hour."
+      );
 
-  startContainer.innerHTML = startHTML;
-  endContainer.innerHTML = endHTML;
+      return;
+    }
 
-  updateBookingTimeSummary();
+    if (
+      end > 25 * 60
+    ) {
 
-}
+      alert(
+        "Availability ends at 1:00 AM."
+      );
 
+      return;
+    }
 
-window.selectBookingStartTime = function(time) {
+    const endDisplay =
+      time;
 
-  $("time").value = time;
-  $("endTime").value = "";
+    if (
+      !isAvailabilityRangeFree(
+        selectedAvailabilityDate,
+        selectedStartTime,
+        endDisplay
+      )
+    ) {
 
-  renderBookingTimePicker();
+      alert(
+        "This time range contains an existing booking."
+      );
 
-};
+      return;
+    }
 
+    selectedEndTime =
+      endDisplay;
 
-window.selectBookingEndTime = function(time) {
+    renderAvailability();
 
-  const start = $("time").value;
-
-  if (!start) {
-    alert("Please select the start time first.");
-    return;
-  }
-
-  const startMinutes = timeToMinutes(start);
-  let endMinutes = timeToMinutes(time);
-
-  /* Support overnight booking: 10:00 PM → 1:00 AM. */
-  if (endMinutes <= startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  if (endMinutes - startMinutes < 60) {
-    alert("Minimum booking duration is 1 hour.");
-    return;
-  }
-
-  $("endTime").value = time;
-
-  renderBookingTimePicker();
-
-};
+  };
 
 
-function updateBookingTimeSummary() {
+window.bookSelectedAvailability =
+  function() {
 
-  const summary = $("bookingTimeSummary");
+    if (
+      !selectedStartTime ||
+      !selectedEndTime
+    ) {
+      return;
+    }
 
-  if (!summary) {
-    return;
-  }
+    openModal(
+      selectedAvailabilityDate
+    );
 
-  const start = $("time").value;
-  const end = $("endTime").value;
+    $("time").value =
+      selectedStartTime;
 
-  if (!start) {
-    summary.innerHTML =
-      "Select a start time, then select an end time.";
-    return;
-  }
+    $("endTime").value =
+      selectedEndTime;
 
-  if (!end) {
-    summary.innerHTML = `
-      <span>START</span>
-      <strong>${formatTime(start)}</strong>
-      <span class="summary-arrow">→</span>
-      <span>Select end time</span>
-    `;
-    return;
-  }
-
-  summary.innerHTML = `
-    <span>BOOKING TIME</span>
-    <strong>
-      ${formatTime(start)} → ${formatTime(end)}
-    </strong>
-  `;
-
-}
-
-
-function initializeBookingTimePicker() {
-
-  renderBookingTimePicker();
-
-}
+  };
 
 
 /* =====================================================
