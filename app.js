@@ -1,3 +1,5 @@
+// app.js
+
 const db = window.supabase.createClient(
   window.DTS_SUPABASE_URL,
   window.DTS_SUPABASE_PUBLISHABLE_KEY
@@ -53,8 +55,7 @@ function timeToMinutes(time) {
     return 0;
   }
 
-  const parts =
-    time.split(":");
+  const parts = time.split(":");
 
   return (
     Number(parts[0]) * 60 +
@@ -75,12 +76,18 @@ function minutesToTime(minutes) {
   const m = minutes % 60;
 
   return (
-    String(h).padStart(2,"0") +
+    String(h).padStart(2, "0") +
     ":" +
-    String(m).padStart(2,"0")
+    String(m).padStart(2, "0")
   );
 }
 
+
+/*
+  IMPORTANT:
+  Database values remain 24-hour format.
+  Only the visible display uses AM/PM.
+*/
 
 function formatTime(time) {
 
@@ -88,14 +95,10 @@ function formatTime(time) {
     return "TBD";
   }
 
-  const parts =
-    time.split(":");
+  const parts = time.split(":");
 
-  const hour =
-    Number(parts[0]);
-
-  const minute =
-    parts[1];
+  const hour = Number(parts[0]);
+  const minute = parts[1];
 
   const suffix =
     hour >= 12
@@ -109,7 +112,7 @@ function formatTime(time) {
 }
 
 
-function formatTimeRange(start,end) {
+function formatTimeRange(start, end) {
 
   if (!start) {
     return "TBD";
@@ -122,6 +125,73 @@ function formatTimeRange(start,end) {
   return `${formatTime(start)} – ${formatTime(end)}`;
 }
 
+
+/* =====================================================
+   TIME SELECTS
+===================================================== */
+
+function populateTimeSelects() {
+
+  const startSelect = $("time");
+  const endSelect = $("endTime");
+
+  if (!startSelect || !endSelect) {
+    return;
+  }
+
+  const currentStart = startSelect.value;
+  const currentEnd = endSelect.value;
+
+  const options = [
+    '<option value="">Select time</option>'
+  ];
+
+  /*
+    00:00 through 23:30.
+    VALUE = 24-hour format for Supabase.
+    TEXT  = AM/PM for the user.
+  */
+
+  for (
+    let minutes = 0;
+    minutes < 24 * 60;
+    minutes += 30
+  ) {
+
+    const value =
+      minutesToTime(minutes);
+
+    const label =
+      formatTime(value);
+
+    options.push(
+      `<option value="${value}">
+        ${label}
+      </option>`
+    );
+  }
+
+  startSelect.innerHTML =
+    options.join("");
+
+  endSelect.innerHTML =
+    options.join("");
+
+  if (currentStart) {
+    startSelect.value =
+      currentStart;
+  }
+
+  if (currentEnd) {
+    endSelect.value =
+      currentEnd;
+  }
+}
+
+
+/* =====================================================
+   OVERLAP
+===================================================== */
 
 function timeRangesOverlap(
   startA,
@@ -139,14 +209,31 @@ function timeRangesOverlap(
     return false;
   }
 
-  let aStart = timeToMinutes(startA);
-  let aEnd = timeToMinutes(endA);
-  let bStart = timeToMinutes(startB);
-  let bEnd = timeToMinutes(endB);
+  let aStart =
+    timeToMinutes(startA);
 
-  // Support overnight bookings such as 10:00 PM → 1:00 AM.
-  if (aEnd <= aStart) aEnd += 24 * 60;
-  if (bEnd <= bStart) bEnd += 24 * 60;
+  let aEnd =
+    timeToMinutes(endA);
+
+  let bStart =
+    timeToMinutes(startB);
+
+  let bEnd =
+    timeToMinutes(endB);
+
+  /*
+    Overnight booking support.
+    Example:
+    10:00 PM → 1:00 AM
+  */
+
+  if (aEnd <= aStart) {
+    aEnd += 24 * 60;
+  }
+
+  if (bEnd <= bStart) {
+    bEnd += 24 * 60;
+  }
 
   return (
     aStart < bEnd &&
@@ -155,8 +242,11 @@ function timeRangesOverlap(
 }
 
 
+populateTimeSelects();
+
+
 /* =====================================================
-   TIMEZONE GREETING
+   GREETING
 ===================================================== */
 
 function updateGreeting() {
@@ -169,16 +259,13 @@ function updateGreeting() {
   }
 
   /*
-    Uses the browser/device local timezone.
-    India = Asia/Kolkata automatically.
+    Uses the device/browser local timezone.
   */
 
   const hour =
     new Date().getHours();
 
-
   let text;
-
 
   if (
     hour >= 5 &&
@@ -216,7 +303,6 @@ function updateGreeting() {
       "GOOD NIGHT";
 
   }
-
 
   greeting.textContent =
     text;
@@ -292,8 +378,6 @@ async function initializeAuth() {
 
   /*
     Force fresh login on page load.
-    Remove these two lines if you later want
-    persistent login sessions.
   */
 
   await db.auth.signOut();
@@ -302,7 +386,7 @@ async function initializeAuth() {
 
 
   db.auth.onAuthStateChange(
-    async (event,session) => {
+    async (event, session) => {
 
       if (
         event === "SIGNED_IN" &&
@@ -340,11 +424,19 @@ async function handleSignedIn(user) {
     user;
 
 
-  const { data,error } =
+  const {
+    data,
+    error
+  } =
     await db
       .from("staff")
-      .select("user_id,full_name")
-      .eq("user_id",user.id)
+      .select(
+        "user_id,full_name"
+      )
+      .eq(
+        "user_id",
+        user.id
+      )
       .maybeSingle();
 
 
@@ -396,7 +488,7 @@ async function handleSignedIn(user) {
     name
       .split(/\s+/)
       .filter(Boolean)
-      .slice(0,2)
+      .slice(0, 2)
       .map(x => x[0])
       .join("")
       .toUpperCase();
@@ -425,7 +517,6 @@ $("loginForm")
 
       event.preventDefault();
 
-
       $("loginError")
         .textContent =
         "Signing in…";
@@ -441,7 +532,10 @@ $("loginForm")
           .value;
 
 
-      const { data,error } =
+      const {
+        data,
+        error
+      } =
         await db.auth.signInWithPassword({
 
           email,
@@ -582,7 +676,10 @@ $("signupForm")
       }
 
 
-      const { data,error } =
+      const {
+        data,
+        error
+      } =
         await db.auth.signUp({
 
           email,
@@ -633,12 +730,25 @@ async function loadBookings() {
   }
 
 
-  const { data,error } =
+  const {
+    data,
+    error
+  } =
     await db
       .from("bookings")
       .select("*")
-      .order("event_date",{ ascending:true })
-      .order("event_time",{ ascending:true });
+      .order(
+        "event_date",
+        {
+          ascending: true
+        }
+      )
+      .order(
+        "event_time",
+        {
+          ascending: true
+        }
+      );
 
 
   if (error) {
@@ -738,7 +848,8 @@ function renderStats() {
   const active =
     bookings.filter(
       b =>
-        b.status !== "Cancelled"
+        b.status !==
+        "Cancelled"
     );
 
 
@@ -747,12 +858,15 @@ function renderStats() {
 
       const d =
         new Date(
-          b.date + "T00:00:00"
+          b.date +
+          "T00:00:00"
         );
 
       return (
-        d.getFullYear() === year &&
-        d.getMonth() === month
+        d.getFullYear() ===
+          year &&
+        d.getMonth() ===
+          month
       );
 
     });
@@ -763,7 +877,8 @@ function renderStats() {
 
       return (
         new Date(
-          b.date + "T23:59:59"
+          b.date +
+          "T23:59:59"
         ) >= now
       );
 
@@ -773,7 +888,11 @@ function renderStats() {
   const customerSet =
     new Set(
       active
-        .map(b => b.phone || b.customer)
+        .map(
+          b =>
+            b.phone ||
+            b.customer
+        )
         .filter(Boolean)
     );
 
@@ -865,29 +984,35 @@ function renderUpcoming() {
     new Date();
 
   today.setHours(
-    0,0,0,0
+    0,
+    0,
+    0,
+    0
   );
 
 
   const list =
     bookings
 
-      .filter(b =>
-        b.status !== "Cancelled"
+      .filter(
+        b =>
+          b.status !==
+          "Cancelled"
       )
 
       .filter(b => {
 
         const d =
           new Date(
-            b.date + "T00:00:00"
+            b.date +
+            "T00:00:00"
           );
 
         return d >= today;
 
       })
 
-      .sort((a,b) => {
+      .sort((a, b) => {
 
         const aa =
           `${a.date} ${a.time}`;
@@ -899,7 +1024,7 @@ function renderUpcoming() {
 
       })
 
-      .slice(0,5);
+      .slice(0, 5);
 
 
   if (!list.length) {
@@ -934,7 +1059,8 @@ function renderUpcoming() {
 
             <div class="sub">
               ${escapeHTML(
-                b.customer || "Customer not added"
+                b.customer ||
+                "Customer not added"
               )}
             </div>
 
@@ -944,7 +1070,9 @@ function renderUpcoming() {
 
             <b>
               ${escapeHTML(
-                formatDate(b.date)
+                formatDate(
+                  b.date
+                )
               )}
             </b>
 
@@ -1002,7 +1130,8 @@ function formatDate(dateString) {
 
   const d =
     new Date(
-      dateString + "T00:00:00"
+      dateString +
+      "T00:00:00"
     );
 
 
@@ -1070,9 +1199,13 @@ function renderCalendar() {
   ) {
 
     const blank =
-      document.createElement("span");
+      document.createElement(
+        "span"
+      );
 
-    container.appendChild(blank);
+    container.appendChild(
+      blank
+    );
 
   }
 
@@ -1084,11 +1217,17 @@ function renderCalendar() {
   ) {
 
     const button =
-      document.createElement("button");
+      document.createElement(
+        "button"
+      );
 
 
     const date =
-      `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+      `${year}-${String(
+        month + 1
+      ).padStart(2, "0")}-${String(
+        day
+      ).padStart(2, "0")}`;
 
 
     button.textContent =
@@ -1100,12 +1239,17 @@ function renderCalendar() {
 
 
     if (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === day
+      today.getFullYear() ===
+        year &&
+      today.getMonth() ===
+        month &&
+      today.getDate() ===
+        day
     ) {
 
-      button.classList.add("today");
+      button.classList.add(
+        "today"
+      );
 
     }
 
@@ -1114,11 +1258,14 @@ function renderCalendar() {
       bookings.some(
         b =>
           b.date === date &&
-          b.status !== "Cancelled"
+          b.status !==
+            "Cancelled"
       )
     ) {
 
-      button.classList.add("booked");
+      button.classList.add(
+        "booked"
+      );
 
     }
 
@@ -1135,7 +1282,9 @@ function renderCalendar() {
     );
 
 
-    container.appendChild(button);
+    container.appendChild(
+      button
+    );
 
   }
 
@@ -1216,8 +1365,14 @@ function renderBookings() {
           b.date,
           b.time,
           b.endTime,
+
+          /*
+            AM/PM search support.
+          */
+
           formatTime(b.time),
           formatTime(b.endTime),
+
           b.status
 
         ]
@@ -1234,7 +1389,7 @@ function renderBookings() {
   }
 
 
-  list.sort((a,b) => {
+  list.sort((a, b) => {
 
     const aa =
       `${a.date} ${a.time}`;
@@ -1269,7 +1424,9 @@ function renderBookings() {
 
             <strong>
               ${escapeHTML(
-                formatDate(b.date)
+                formatDate(
+                  b.date
+                )
               )}
             </strong>
 
@@ -1393,7 +1550,9 @@ $("search")
 
 
       if (value) {
-        showPage("bookings");
+        showPage(
+          "bookings"
+        );
       }
 
       renderBookings();
@@ -1419,7 +1578,8 @@ function openModal(
     .reset();
 
 
-  $("editId").value = "";
+  $("editId").value =
+    "";
 
 
   $("modalTitle").textContent =
@@ -1489,7 +1649,8 @@ $("modal")
     event => {
 
       if (
-        event.target === $("modal")
+        event.target ===
+        $("modal")
       ) {
 
         closeModal();
@@ -1598,14 +1759,31 @@ async function saveBooking(event) {
     );
 
 
-  let normalizedEnd = end;
+  let normalizedEnd =
+    end;
 
-  // Allow overnight bookings such as 10:00 PM → 1:00 AM.
-  if (normalizedEnd <= start) {
-    normalizedEnd += 24 * 60;
+
+  /*
+    Overnight booking.
+    Example:
+    10:00 PM → 1:00 AM
+  */
+
+  if (
+    normalizedEnd <=
+    start
+  ) {
+
+    normalizedEnd +=
+      24 * 60;
+
   }
 
-  if (normalizedEnd <= start) {
+
+  if (
+    normalizedEnd <=
+    start
+  ) {
 
     $("formError").textContent =
       "Please select a valid end time.";
@@ -1615,7 +1793,9 @@ async function saveBooking(event) {
 
 
   if (
-    normalizedEnd - start < 60
+    normalizedEnd -
+      start <
+    60
   ) {
 
     $("formError").textContent =
@@ -1625,17 +1805,14 @@ async function saveBooking(event) {
   }
 
 
-  /*
-    Check overlap.
-  */
-
   const duplicate =
     bookings.find(x => {
 
       if (
         x.id === id ||
         x.date !== b.date ||
-        x.status === "Cancelled"
+        x.status ===
+          "Cancelled"
       ) {
 
         return false;
@@ -1669,15 +1846,19 @@ async function saveBooking(event) {
   if (duplicate) {
 
     $("formError").textContent =
-      `This time overlaps with ${duplicate.bookedBy}'s booking (${formatTimeRange(
-        duplicate.time,
-        duplicate.endTime ||
-        minutesToTime(
-          timeToMinutes(
-            duplicate.time
-          ) + 30
+      `This time overlaps with ${
+        duplicate.bookedBy
+      }'s booking (${
+        formatTimeRange(
+          duplicate.time,
+          duplicate.endTime ||
+          minutesToTime(
+            timeToMinutes(
+              duplicate.time
+            ) + 30
+          )
         )
-      )}).`;
+      }).`;
 
     return;
   }
@@ -1705,16 +1886,19 @@ async function saveBooking(event) {
       b.bookedBy,
 
     customer_name:
-      b.customer || null,
+      b.customer ||
+      null,
 
     phone:
-      b.phone || null,
+      b.phone ||
+      null,
 
     status:
       b.status,
 
     notes:
-      b.notes || null
+      b.notes ||
+      null
 
   };
 
@@ -1728,7 +1912,7 @@ async function saveBooking(event) {
       await db
         .from("bookings")
         .update(row)
-        .eq("id",id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -1782,7 +1966,8 @@ window.editBooking =
 
     const b =
       bookings.find(
-        x => x.id === id
+        x =>
+          x.id === id
       );
 
 
@@ -1860,7 +2045,8 @@ window.deleteBooking =
 
     const booking =
       bookings.find(
-        x => x.id === id
+        x =>
+          x.id === id
       );
 
 
@@ -1871,7 +2057,10 @@ window.deleteBooking =
 
     const ok =
       confirm(
-        `Delete booking for ${booking.customer || "this customer"}?`
+        `Delete booking for ${
+          booking.customer ||
+          "this customer"
+        }?`
       );
 
 
@@ -1884,7 +2073,7 @@ window.deleteBooking =
       await db
         .from("bookings")
         .delete()
-        .eq("id",id);
+        .eq("id", id);
 
 
     if (error) {
@@ -1935,18 +2124,18 @@ function getLocalDateString() {
 
 
   return [
+
     now.getFullYear(),
 
     String(
       now.getMonth() + 1
-    ).padStart(2,"0"),
+    ).padStart(2, "0"),
 
     String(
       now.getDate()
-    ).padStart(2,"0")
+    ).padStart(2, "0")
 
   ].join("-");
-
 }
 
 
@@ -1989,11 +2178,11 @@ function renderAvailabilityDates() {
 
         String(
           date.getMonth() + 1
-        ).padStart(2,"0"),
+        ).padStart(2, "0"),
 
         String(
           date.getDate()
-        ).padStart(2,"0")
+        ).padStart(2, "0")
 
       ].join("-");
 
@@ -2025,7 +2214,9 @@ function renderAvailabilityDates() {
       <span class="day-name">
         ${date.toLocaleDateString(
           "en-IN",
-          { weekday:"short" }
+          {
+            weekday: "short"
+          }
         )}
       </span>
 
@@ -2036,7 +2227,9 @@ function renderAvailabilityDates() {
       <span class="month-name">
         ${date.toLocaleDateString(
           "en-IN",
-          { month:"short" }
+          {
+            month: "short"
+          }
         )}
       </span>
 
@@ -2072,62 +2265,137 @@ function renderAvailabilityDates() {
 
 
 /* =====================================================
-   CHECK BOOKED TIME
+   PREVIOUS DATE
 ===================================================== */
 
-function getPreviousDateString(dateString) {
+function getPreviousDateString(
+  dateString
+) {
 
-  const d = new Date(dateString + "T00:00:00");
-  d.setDate(d.getDate() - 1);
+  const d =
+    new Date(
+      dateString +
+      "T00:00:00"
+    );
+
+  d.setDate(
+    d.getDate() - 1
+  );
 
   return [
+
     d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2,"0"),
-    String(d.getDate()).padStart(2,"0")
+
+    String(
+      d.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      d.getDate()
+    ).padStart(2, "0")
+
   ].join("-");
 }
 
 
-function isTimeBooked(date, time) {
+/* =====================================================
+   CHECK BOOKED TIME
+===================================================== */
 
-  const target = timeToMinutes(time);
-  const previousDate = getPreviousDateString(date);
+function isTimeBooked(
+  date,
+  time
+) {
+
+  const target =
+    timeToMinutes(time);
+
+  const previousDate =
+    getPreviousDateString(
+      date
+    );
+
 
   return bookings.some(b => {
 
-    if (b.status === "Cancelled" || !b.time) {
+    if (
+      b.status ===
+        "Cancelled" ||
+      !b.time
+    ) {
+
       return false;
+
     }
 
-    let start = timeToMinutes(b.time);
-    let end = b.endTime
-      ? timeToMinutes(b.endTime)
-      : start + 30;
 
-    // Normal same-day booking.
-    if (b.date === date) {
+    let start =
+      timeToMinutes(
+        b.time
+      );
 
-      if (end <= start) {
-        // Overnight booking: only the part after midnight
-        // belongs to the following calendar day.
+    let end =
+      b.endTime
+        ? timeToMinutes(
+            b.endTime
+          )
+        : start + 30;
+
+
+    /*
+      Same-day booking.
+    */
+
+    if (
+      b.date === date
+    ) {
+
+      if (
+        end <= start
+      ) {
+
+        /*
+          Overnight booking.
+          Only the part after midnight
+          belongs to the following date.
+        */
+
         return target < end;
+
       }
 
-      return target >= start && target < end;
+      return (
+        target >= start &&
+        target < end
+      );
+
     }
 
-    // Early-morning part of an overnight booking from yesterday.
-    if (b.date === previousDate && end <= start) {
+
+    /*
+      Early morning portion of an
+      overnight booking from yesterday.
+    */
+
+    if (
+      b.date ===
+        previousDate &&
+      end <= start
+    ) {
+
       return target < end;
+
     }
+
 
     return false;
+
   });
 }
 
 
 /* =====================================================
-   AVAILABILITY SLOTS
+   AM/PM AVAILABILITY
 ===================================================== */
 
 function renderAvailabilitySlots() {
@@ -2161,16 +2429,17 @@ function renderAvailabilitySlots() {
 
 
   /*
-    10 AM to 1 AM next day.
+    10 AM → 1 AM next day.
     30-minute intervals.
-
-    25 * 60 represents 1:00 AM on the
-    following day in the availability timeline.
   */
 
   for (
-    let minutes = 10 * 60;
-    minutes <= 25 * 60;
+    let minutes =
+      10 * 60;
+
+    minutes <=
+      25 * 60;
+
     minutes += 30
   ) {
 
@@ -2188,21 +2457,19 @@ function renderAvailabilitySlots() {
 
 
     const selected =
-      selectedStartTime === time;
+      selectedStartTime ===
+      time;
 
 
     html += `
 
       <button
-        class="time-slot
+        class="
+          time-slot
           ${booked ? "booked" : ""}
           ${selected ? "selected" : ""}
         "
-        ${
-          booked
-            ? "disabled"
-            : ""
-        }
+        ${booked ? "disabled" : ""}
         onclick="selectAvailabilityTime('${time}')"
       >
 
@@ -2241,6 +2508,7 @@ function renderAvailabilitySlots() {
           ${
             selectedEndTime
               ? `
+
                 <br>
 
                 <strong>
@@ -2250,6 +2518,7 @@ function renderAvailabilitySlots() {
                 ${formatTime(
                   selectedEndTime
                 )}
+
               `
               : ""
           }
@@ -2260,17 +2529,21 @@ function renderAvailabilitySlots() {
         ${
           selectedEndTime
             ? `
+
               <button
                 class="create"
                 onclick="bookSelectedAvailability()"
               >
                 Book this time →
               </button>
+
             `
             : `
+
               <span class="sub">
                 Now select an end time.
               </span>
+
             `
         }
 
@@ -2286,7 +2559,7 @@ function renderAvailabilitySlots() {
 
 
   /*
-    Add end-time selection behavior.
+    End-time selection.
   */
 
   if (
@@ -2307,6 +2580,13 @@ function renderAvailabilitySlots() {
           button.textContent
             .trim();
 
+
+        /*
+          Convert the visible AM/PM text
+          back to database 24-hour value
+          internally.
+        */
+
         const time =
           convertDisplayTimeTo24(
             text
@@ -2315,17 +2595,43 @@ function renderAvailabilitySlots() {
 
         if (time) {
 
-          let startMinutes = timeToMinutes(selectedStartTime);
-          let endMinutes = timeToMinutes(time);
+          let startMinutes =
+            timeToMinutes(
+              selectedStartTime
+            );
 
-          // A displayed 12 AM / 1 AM slot is the next-day portion
-          // when the selected start is in the evening.
-          if (endMinutes <= startMinutes && startMinutes >= 10 * 60) {
-            endMinutes += 24 * 60;
+          let endMinutes =
+            timeToMinutes(
+              time
+            );
+
+
+          /*
+            12 AM / 1 AM after an
+            evening start means next day.
+          */
+
+          if (
+            endMinutes <=
+              startMinutes &&
+            startMinutes >=
+              10 * 60
+          ) {
+
+            endMinutes +=
+              24 * 60;
+
           }
 
-          if (endMinutes <= startMinutes) {
-            button.disabled = true;
+
+          if (
+            endMinutes <=
+              startMinutes
+          ) {
+
+            button.disabled =
+              true;
+
           }
 
         }
@@ -2337,6 +2643,10 @@ function renderAvailabilitySlots() {
 
 }
 
+
+/* =====================================================
+   AM/PM → 24-HOUR INTERNAL VALUE
+===================================================== */
 
 function convertDisplayTimeTo24(
   display
@@ -2354,10 +2664,14 @@ function convertDisplayTimeTo24(
 
 
   let hour =
-    Number(match[1]);
+    Number(
+      match[1]
+    );
 
   const minute =
-    Number(match[2]);
+    Number(
+      match[2]
+    );
 
   const suffix =
     match[3].toUpperCase();
@@ -2384,11 +2698,16 @@ function convertDisplayTimeTo24(
 
 
   return minutesToTime(
-    hour * 60 + minute
+    hour * 60 +
+    minute
   );
 
 }
 
+
+/* =====================================================
+   AVAILABILITY SELECT
+===================================================== */
 
 window.selectAvailabilityTime =
   function(time) {
@@ -2416,20 +2735,48 @@ window.selectAvailabilityTime =
     }
 
 
-    const start = timeToMinutes(selectedStartTime);
-    let end = timeToMinutes(time);
+    const start =
+      timeToMinutes(
+        selectedStartTime
+      );
 
-    // Allow an end time after midnight, e.g. 10 PM → 1 AM.
-    if (end <= start && start >= 10 * 60) {
-      end += 24 * 60;
+    let end =
+      timeToMinutes(
+        time
+      );
+
+
+    /*
+      Overnight:
+      10 PM → 1 AM
+    */
+
+    if (
+      end <= start &&
+      start >=
+        10 * 60
+    ) {
+
+      end +=
+        24 * 60;
+
     }
 
-    if (end <= start) {
 
-      selectedStartTime = time;
-      selectedEndTime = null;
+    if (
+      end <= start
+    ) {
+
+      selectedStartTime =
+        time;
+
+      selectedEndTime =
+        null;
+
       renderAvailability();
+
       return;
+
     }
 
 
@@ -2474,6 +2821,10 @@ window.selectAvailabilityTime =
   };
 
 
+/* =====================================================
+   BOOK SELECTED AVAILABILITY
+===================================================== */
+
 window.bookSelectedAvailability =
   function() {
 
@@ -2483,6 +2834,7 @@ window.bookSelectedAvailability =
     ) {
 
       return;
+
     }
 
 
@@ -2533,6 +2885,7 @@ function renderCustomers() {
       map.set(
         key,
         {
+
           name:
             b.customer ||
             "Unknown Customer",
@@ -2543,13 +2896,15 @@ function renderCustomers() {
 
           bookings:
             0
+
         }
       );
 
     }
 
 
-    map.get(key).bookings++;
+    map.get(key)
+      .bookings++;
 
   });
 
@@ -2576,7 +2931,7 @@ function renderCustomers() {
         c.name
           .split(/\s+/)
           .filter(Boolean)
-          .slice(0,2)
+          .slice(0, 2)
           .map(x => x[0])
           .join("")
           .toUpperCase();
@@ -2589,7 +2944,8 @@ function renderCustomers() {
           <div class="customer-avatar">
 
             ${escapeHTML(
-              initials || "C"
+              initials ||
+              "C"
             )}
 
           </div>
@@ -2609,7 +2965,11 @@ function renderCustomers() {
 
           <p>
             ${c.bookings}
-            booking${c.bookings === 1 ? "" : "s"}
+            booking${
+              c.bookings === 1
+                ? ""
+                : "s"
+            }
           </p>
 
         </div>
@@ -2639,28 +2999,32 @@ function renderReports() {
   const active =
     bookings.filter(
       b =>
-        b.status !== "Cancelled"
+        b.status !==
+        "Cancelled"
     );
 
 
   const confirmed =
     bookings.filter(
       b =>
-        b.status === "Confirmed"
+        b.status ===
+        "Confirmed"
     );
 
 
   const completed =
     bookings.filter(
       b =>
-        b.status === "Completed"
+        b.status ===
+        "Completed"
     );
 
 
   const cancelled =
     bookings.filter(
       b =>
-        b.status === "Cancelled"
+        b.status ===
+        "Cancelled"
     );
 
 
@@ -2721,11 +3085,17 @@ function renderReports() {
     <div class="report-card">
 
       <strong>
-        ${new Set(
-          active
-            .map(b => b.phone || b.customer)
-            .filter(Boolean)
-        ).size}
+        ${
+          new Set(
+            active
+              .map(
+                b =>
+                  b.phone ||
+                  b.customer
+              )
+              .filter(Boolean)
+          ).size
+        }
       </strong>
 
       <span>
@@ -2738,11 +3108,13 @@ function renderReports() {
     <div class="report-card">
 
       <strong>
-        ${active.filter(
-          b =>
-            b.type ===
-            "Birthday Surprise"
-        ).length}
+        ${
+          active.filter(
+            b =>
+              b.type ===
+              "Birthday Surprise"
+          ).length
+        }
       </strong>
 
       <span>
@@ -2794,14 +3166,16 @@ function showPage(page) {
 
       button.classList.toggle(
         "active",
-        button.dataset.page === page
+        button.dataset.page ===
+          page
       );
 
     });
 
 
   if (
-    window.innerWidth <= 900
+    window.innerWidth <=
+    900
   ) {
 
     document
@@ -2813,7 +3187,8 @@ function showPage(page) {
 
 
   if (
-    page === "availability"
+    page ===
+    "availability"
   ) {
 
     renderAvailability();
