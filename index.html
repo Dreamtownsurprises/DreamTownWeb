@@ -1371,48 +1371,39 @@
         </div>
 
 
-        <div class="field full">
+        <div class="field">
 
           <label>
             Start Time *
           </label>
 
-          <input
-            id="time"
-            type="hidden"
-            required
-          >
-
-          <div
-            id="bookingStartTimes"
-            class="booking-time-grid"
-          ></div>
+          <div class="booking-clock-wrap">
+            <input
+              id="time"
+              type="time"
+              step="60"
+              required
+            >
+            <span class="booking-clock-help">12-hour time • AM / PM</span>
+          </div>
 
         </div>
 
 
-        <div class="field full">
+        <div class="field">
 
           <label>
             End Time *
           </label>
 
-          <input
-            id="endTime"
-            type="hidden"
-            required
-          >
-
-          <div
-            id="bookingEndTimes"
-            class="booking-time-grid"
-          ></div>
-
-          <div
-            id="bookingTimeSummary"
-            class="booking-time-summary"
-          >
-            Select a start time, then select an end time.
+          <div class="booking-clock-wrap">
+            <input
+              id="endTime"
+              type="time"
+              step="60"
+              required
+            >
+            <span class="booking-clock-help">12-hour time • AM / PM</span>
           </div>
 
         </div>
