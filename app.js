@@ -1,7 +1,7 @@
-/* =====================================================
-   DREAM TOWN SURPRISES
-   app.js
-   ===================================================== */
+// =====================================================
+// app.js
+// DREAM TOWN SURPRISES
+// =====================================================
 
 const db = window.supabase.createClient(
   window.DTS_SUPABASE_URL,
@@ -56,50 +56,73 @@ function escapeHTML(value) {
 
 function getLocalDateString() {
 
-  const d = new Date();
+  const date = new Date();
 
   return [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    String(d.getDate()).padStart(2, "0")
-  ].join("-");
-}
+    date.getFullYear(),
 
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
 
-function getNextDateString(dateString) {
+    String(
+      date.getDate()
+    ).padStart(2, "0")
 
-  const d =
-    new Date(
-      dateString + "T00:00:00"
-    );
-
-  d.setDate(
-    d.getDate() + 1
-  );
-
-  return [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    String(d.getDate()).padStart(2, "0")
   ].join("-");
 }
 
 
 function getPreviousDateString(dateString) {
 
-  const d =
+  const date =
     new Date(
-      dateString + "T00:00:00"
+      dateString +
+      "T00:00:00"
     );
 
-  d.setDate(
-    d.getDate() - 1
+  date.setDate(
+    date.getDate() - 1
   );
 
   return [
-    d.getFullYear(),
-    String(d.getMonth() + 1).padStart(2, "0"),
-    String(d.getDate()).padStart(2, "0")
+    date.getFullYear(),
+
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      date.getDate()
+    ).padStart(2, "0")
+
+  ].join("-");
+}
+
+
+function getNextDateString(dateString) {
+
+  const date =
+    new Date(
+      dateString +
+      "T00:00:00"
+    );
+
+  date.setDate(
+    date.getDate() + 1
+  );
+
+  return [
+    date.getFullYear(),
+
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      date.getDate()
+    ).padStart(2, "0")
+
   ].join("-");
 }
 
@@ -110,12 +133,13 @@ function formatDate(dateString) {
     return "";
   }
 
-  const d =
+  const date =
     new Date(
-      dateString + "T00:00:00"
+      dateString +
+      "T00:00:00"
     );
 
-  return d.toLocaleDateString(
+  return date.toLocaleDateString(
     "en-IN",
     {
       day: "2-digit",
@@ -156,7 +180,9 @@ function minutesToTime(minutes) {
   }
 
   const hours =
-    Math.floor(minutes / 60);
+    Math.floor(
+      minutes / 60
+    );
 
   const mins =
     minutes % 60;
@@ -169,9 +195,13 @@ function minutesToTime(minutes) {
 }
 
 
-/* =====================================================
-   12-HOUR DISPLAY
-===================================================== */
+/*
+  Database:
+  24-hour format
+
+  Display:
+  12-hour AM/PM
+*/
 
 function formatTime(time) {
 
@@ -186,8 +216,9 @@ function formatTime(time) {
     Number(parts[0]);
 
   const minute =
-    String(parts[1] || "00")
-      .padStart(2, "0");
+    String(
+      parts[1] || "00"
+    ).padStart(2, "0");
 
   const period =
     hour >= 12
@@ -203,7 +234,10 @@ function formatTime(time) {
 }
 
 
-function formatTimeRange(start, end) {
+function formatTimeRange(
+  start,
+  end
+) {
 
   if (!start) {
     return "TBD";
@@ -215,6 +249,62 @@ function formatTimeRange(start, end) {
 
   return (
     `${formatTime(start)} – ${formatTime(end)}`
+  );
+}
+
+
+/* =====================================================
+   OVERLAP CHECK
+===================================================== */
+
+function timeRangesOverlap(
+  startA,
+  endA,
+  startB,
+  endB
+) {
+
+  if (
+    !startA ||
+    !endA ||
+    !startB ||
+    !endB
+  ) {
+    return false;
+  }
+
+  let aStart =
+    timeToMinutes(startA);
+
+  let aEnd =
+    timeToMinutes(endA);
+
+  let bStart =
+    timeToMinutes(startB);
+
+  let bEnd =
+    timeToMinutes(endB);
+
+
+  /*
+    Overnight booking.
+
+    Example:
+    10:30 PM → 1:15 AM
+  */
+
+  if (aEnd <= aStart) {
+    aEnd += 1440;
+  }
+
+  if (bEnd <= bStart) {
+    bEnd += 1440;
+  }
+
+
+  return (
+    aStart < bEnd &&
+    aEnd > bStart
   );
 }
 
@@ -237,6 +327,7 @@ function updateGreeting() {
 
   let text;
 
+
   if (
     hour >= 5 &&
     hour < 12
@@ -245,7 +336,9 @@ function updateGreeting() {
     text =
       "GOOD MORNING";
 
-  } else if (
+  }
+
+  else if (
     hour >= 12 &&
     hour < 17
   ) {
@@ -253,7 +346,9 @@ function updateGreeting() {
     text =
       "GOOD AFTERNOON";
 
-  } else if (
+  }
+
+  else if (
     hour >= 17 &&
     hour < 21
   ) {
@@ -261,12 +356,15 @@ function updateGreeting() {
     text =
       "GOOD EVENING";
 
-  } else {
+  }
+
+  else {
 
     text =
       "GOOD NIGHT";
 
   }
+
 
   greeting.textContent =
     text;
@@ -278,12 +376,12 @@ updateGreeting();
 
 setInterval(
   updateGreeting,
-  60000
+  60 * 1000
 );
 
 
 /* =====================================================
-   AUTH
+   AUTH UI
 ===================================================== */
 
 function showLogin() {
@@ -334,14 +432,26 @@ function showSignupPanel() {
 }
 
 
+/* =====================================================
+   AUTH INITIALIZATION
+===================================================== */
+
 async function initializeAuth() {
+
+  /*
+    Fresh login on page load.
+  */
 
   await db.auth.signOut();
 
   showLogin();
 
+
   db.auth.onAuthStateChange(
-    async (event, session) => {
+    async (
+      event,
+      session
+    ) => {
 
       if (
         event === "SIGNED_IN" &&
@@ -354,12 +464,15 @@ async function initializeAuth() {
 
       }
 
+
       if (
         event === "SIGNED_OUT"
       ) {
 
         currentUser = null;
+
         staffProfile = null;
+
         bookings = [];
 
         showLogin();
@@ -371,10 +484,13 @@ async function initializeAuth() {
 }
 
 
-async function handleSignedIn(user) {
+async function handleSignedIn(
+  user
+) {
 
   currentUser =
     user;
+
 
   const {
     data,
@@ -464,7 +580,8 @@ async function handleSignedIn(user) {
           x => x[0]
         )
         .join("")
-        .toUpperCase();
+        .toUpperCase() ||
+      "DT";
 
   }
 
@@ -478,7 +595,7 @@ async function handleSignedIn(user) {
 
 
 /* =====================================================
-   LOGIN EVENTS
+   LOGIN
 ===================================================== */
 
 $("loginForm")
@@ -488,6 +605,7 @@ $("loginForm")
 
       event.preventDefault();
 
+
       $("loginError").textContent =
         "Signing in…";
 
@@ -496,6 +614,7 @@ $("loginForm")
         $("user")
           .value
           .trim();
+
 
       const password =
         $("pass")
@@ -507,8 +626,10 @@ $("loginForm")
         error
       } =
         await db.auth.signInWithPassword({
+
           email,
           password
+
         });
 
 
@@ -589,7 +710,8 @@ $("forgot")
         await db.auth.resetPasswordForEmail(
           email,
           {
-            redirectTo: redirect
+            redirectTo:
+              redirect
           }
         );
 
@@ -620,10 +742,12 @@ $("signupForm")
           .value
           .trim();
 
+
       const email =
         $("signupEmail")
           .value
           .trim();
+
 
       const password =
         $("signupPass")
@@ -732,52 +856,53 @@ async function loadBookings() {
 
 
   bookings =
-    (data || []).map(
-      row => ({
+    (data || [])
+      .map(
+        row => ({
 
-        id:
-          row.id,
+          id:
+            row.id,
 
-        date:
-          row.event_date,
+          date:
+            row.event_date,
 
-        time:
-          row.event_time ||
-          "",
+          time:
+            row.event_time ||
+            "",
 
-        endTime:
-          row.event_end_time ||
-          "",
+          endTime:
+            row.event_end_time ||
+            "",
 
-        type:
-          row.event_type,
+          type:
+            row.event_type,
 
-        customer:
-          row.customer_name ||
-          "",
+          customer:
+            row.customer_name ||
+            "",
 
-        phone:
-          row.phone ||
-          "",
+          phone:
+            row.phone ||
+            "",
 
-        bookedBy:
-          row.booked_by,
+          bookedBy:
+            row.booked_by,
 
-        notes:
-          row.notes ||
-          "",
+          notes:
+            row.notes ||
+            "",
 
-        status:
-          row.status,
+          status:
+            row.status,
 
-        createdBy:
-          row.created_by,
+          createdBy:
+            row.created_by,
 
-        createdAt:
-          row.created_at
+          createdAt:
+            row.created_at
 
-      })
-    );
+        })
+      );
 }
 
 
@@ -812,8 +937,10 @@ function renderStats() {
   const now =
     new Date();
 
+
   const year =
     now.getFullYear();
+
 
   const month =
     now.getMonth();
@@ -836,6 +963,7 @@ function renderStats() {
             b.date +
             "T00:00:00"
           );
+
 
         return (
           d.getFullYear() ===
@@ -960,6 +1088,15 @@ function eventIcon(type) {
   }
 
 
+  if (
+    value.includes("welcome")
+  ) {
+
+    return "✦";
+
+  }
+
+
   return "✿";
 }
 
@@ -981,6 +1118,7 @@ function renderUpcoming() {
 
   const today =
     new Date();
+
 
   today.setHours(
     0,
@@ -1041,7 +1179,9 @@ function renderUpcoming() {
             <div>
 
               <b>
-                ${escapeHTML(b.type)}
+                ${escapeHTML(
+                  b.type
+                )}
               </b>
 
               <div class="sub">
@@ -1057,7 +1197,9 @@ function renderUpcoming() {
 
               <b>
                 ${escapeHTML(
-                  formatDate(b.date)
+                  formatDate(
+                    b.date
+                  )
                 )}
               </b>
 
@@ -1126,6 +1268,7 @@ function renderCalendar() {
   const year =
     calendarDate.getFullYear();
 
+
   const month =
     calendarDate.getMonth();
 
@@ -1134,8 +1277,11 @@ function renderCalendar() {
     calendarDate.toLocaleDateString(
       "en-IN",
       {
-        month: "long",
-        year: "numeric"
+        month:
+          "long",
+
+        year:
+          "numeric"
       }
     );
 
@@ -1190,9 +1336,15 @@ function renderCalendar() {
     const date =
       `${year}-${String(
         month + 1
-      ).padStart(2, "0")}-${String(
+      ).padStart(
+        2,
+        "0"
+      )}-${String(
         day
-      ).padStart(2, "0")}`;
+      ).padStart(
+        2,
+        "0"
+      )}`;
 
 
     button.textContent =
@@ -1204,9 +1356,12 @@ function renderCalendar() {
 
 
     if (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === day
+      today.getFullYear() ===
+        year &&
+      today.getMonth() ===
+        month &&
+      today.getDate() ===
+        day
     ) {
 
       button.classList.add(
@@ -1236,7 +1391,9 @@ function renderCalendar() {
       "click",
       () => {
 
-        openModal(date);
+        openModal(
+          date
+        );
 
       }
     );
@@ -1287,7 +1444,7 @@ $("next")
 
 
 /* =====================================================
-   BOOKINGS
+   BOOKINGS TABLE
 ===================================================== */
 
 function renderBookings() {
@@ -1324,14 +1481,27 @@ function renderBookings() {
           const searchable = [
 
             b.type,
+
             b.bookedBy,
+
             b.customer,
+
             b.phone,
+
             b.date,
+
             b.time,
+
             b.endTime,
-            formatTime(b.time),
-            formatTime(b.endTime),
+
+            formatTime(
+              b.time
+            ),
+
+            formatTime(
+              b.endTime
+            ),
+
             b.status
 
           ]
@@ -1382,7 +1552,9 @@ function renderBookings() {
 
               <strong>
                 ${escapeHTML(
-                  formatDate(b.date)
+                  formatDate(
+                    b.date
+                  )
                 )}
               </strong>
 
@@ -1392,14 +1564,18 @@ function renderBookings() {
             <div>
 
               <strong>
-                ${escapeHTML(b.type)}
+                ${escapeHTML(
+                  b.type
+                )}
               </strong>
 
               <div class="sub">
+
                 ${escapeHTML(
                   b.customer ||
                   "No customer"
                 )}
+
               </div>
 
             </div>
@@ -1414,10 +1590,12 @@ function renderBookings() {
               </strong>
 
               <div class="sub">
+
                 ${escapeHTML(
                   b.phone ||
                   "No phone"
                 )}
+
               </div>
 
             </div>
@@ -1438,9 +1616,11 @@ function renderBookings() {
             <div>
 
               <span class="badge">
+
                 ${escapeHTML(
                   b.status
                 )}
+
               </span>
 
             </div>
@@ -1454,6 +1634,7 @@ function renderBookings() {
               >
                 Edit
               </button>
+
 
               <button
                 class="mini danger"
@@ -1516,10 +1697,10 @@ $("search")
 
 
 /* =====================================================
-   BOOKING MODAL
+   MODAL
 ===================================================== */
 
-function setupBookingTimeInputs() {
+function setupTimeInputs() {
 
   const start =
     $("time");
@@ -1533,6 +1714,10 @@ function setupBookingTimeInputs() {
     start.type =
       "time";
 
+    /*
+      EVERY MINUTE
+    */
+
     start.step =
       "60";
 
@@ -1543,6 +1728,10 @@ function setupBookingTimeInputs() {
 
     end.type =
       "time";
+
+    /*
+      EVERY MINUTE
+    */
 
     end.step =
       "60";
@@ -1580,6 +1769,10 @@ function openModal(
     "Confirmed";
 
 
+  $("type").value =
+    "Anniversary Surprise";
+
+
   $("bookedBy").value =
     staffProfile?.full_name ||
     "";
@@ -1600,7 +1793,7 @@ function openModal(
     null;
 
 
-  setupBookingTimeInputs();
+  setupTimeInputs();
 }
 
 
@@ -1656,7 +1849,9 @@ $("bookingForm")
   );
 
 
-async function saveBooking(event) {
+async function saveBooking(
+  event
+) {
 
   event.preventDefault();
 
@@ -1744,6 +1939,12 @@ async function saveBooking(event) {
     );
 
 
+  /*
+    Overnight booking.
+
+    10:30 PM → 1:30 AM
+  */
+
   if (
     end <= start
   ) {
@@ -1755,7 +1956,28 @@ async function saveBooking(event) {
 
 
   if (
-    end - start < 60
+    end <= start
+  ) {
+
+    $("formError").textContent =
+      "Please select a valid end time.";
+
+    return;
+  }
+
+
+  /*
+    Minimum 1 hour.
+    Every minute is allowed.
+
+    10:01 AM → 11:01 AM = valid
+    10:15 AM → 11:15 AM = valid
+    10:37 AM → 11:37 AM = valid
+  */
+
+  if (
+    end - start <
+    60
   ) {
 
     $("formError").textContent =
@@ -1766,7 +1988,7 @@ async function saveBooking(event) {
 
 
   /*
-    Check existing bookings.
+    Check overlap.
   */
 
   const duplicate =
@@ -1785,31 +2007,35 @@ async function saveBooking(event) {
 
 
         /*
-          Normal same-day booking.
+          Booking on same date.
         */
 
         if (
-          x.date === b.date
+          x.date ===
+          b.date
         ) {
+
+          const existingEnd =
+            x.endTime ||
+            minutesToTime(
+              timeToMinutes(
+                x.time
+              ) + 1
+            );
+
 
           return timeRangesOverlap(
             b.time,
             b.endTime,
             x.time,
-            x.endTime ||
-              minutesToTime(
-                timeToMinutes(
-                  x.time
-                ) + 1
-              )
+            existingEnd
           );
 
         }
 
 
         /*
-          Overnight booking from
-          previous date.
+          Previous date overnight booking.
         */
 
         const previousDate =
@@ -1819,7 +2045,9 @@ async function saveBooking(event) {
 
 
         if (
-          x.date === previousDate &&
+          x.date ===
+            previousDate &&
+          x.time &&
           x.endTime
         ) {
 
@@ -1838,12 +2066,8 @@ async function saveBooking(event) {
             xEnd <= xStart
           ) {
 
-            const newStart =
-              start;
-
             return (
-              newStart <
-              xEnd
+              start < xEnd
             );
 
           }
@@ -1921,11 +2145,16 @@ async function saveBooking(event) {
       await db
         .from("bookings")
         .update(row)
-        .eq("id", id)
+        .eq(
+          "id",
+          id
+        )
         .select()
         .single();
 
-  } else {
+  }
+
+  else {
 
     result =
       await db
@@ -1955,14 +2184,16 @@ async function saveBooking(event) {
 
   closeModal();
 
+
   await loadBookings();
+
 
   renderAll();
 }
 
 
 /* =====================================================
-   EDIT
+   EDIT BOOKING
 ===================================================== */
 
 window.editBooking =
@@ -2021,7 +2252,7 @@ window.editBooking =
       b.notes;
 
 
-    setupBookingTimeInputs();
+    setupTimeInputs();
 
 
     $("time").value =
@@ -2044,7 +2275,7 @@ window.editBooking =
 
 
 /* =====================================================
-   DELETE
+   DELETE BOOKING
 ===================================================== */
 
 window.deleteBooking =
@@ -2062,14 +2293,16 @@ window.deleteBooking =
     }
 
 
-    if (
-      !confirm(
+    const ok =
+      confirm(
         `Delete booking for ${
           booking.customer ||
           "this customer"
         }?`
-      )
-    ) {
+      );
+
+
+    if (!ok) {
       return;
     }
 
@@ -2099,13 +2332,12 @@ window.deleteBooking =
     await loadBookings();
 
     renderAll();
+
   };
 
 
 /* =====================================================
    AVAILABILITY
-   KEEP THE DATE STRIP
-   SHOW 1 YEAR
 ===================================================== */
 
 function renderAvailability() {
@@ -2120,15 +2352,25 @@ function renderAvailability() {
   }
 
 
+  /*
+    KEEP THE DATE STRIP.
+    SHOW 1 YEAR.
+  */
+
   renderAvailabilityDates();
 
-  renderAvailabilitySlots();
+
+  /*
+    KEEP THE CLOCK UI.
+    NO 30-MINUTE GRID.
+  */
+
+  renderAvailabilityClock();
 }
 
 
 /* =====================================================
-   DATE STRIP
-   365 DAYS
+   1 YEAR DATE STRIP
 ===================================================== */
 
 function renderAvailabilityDates() {
@@ -2146,14 +2388,12 @@ function renderAvailabilityDates() {
     "";
 
 
-  const today =
+  const base =
     new Date();
 
 
   /*
-    KEEP THE DATE STRIP.
-
-    1 full year.
+    365 DAYS
   */
 
   for (
@@ -2164,9 +2404,9 @@ function renderAvailabilityDates() {
 
     const date =
       new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() + i
+        base.getFullYear(),
+        base.getMonth(),
+        base.getDate() + i
       );
 
 
@@ -2176,11 +2416,17 @@ function renderAvailabilityDates() {
 
         String(
           date.getMonth() + 1
-        ).padStart(2, "0"),
+        ).padStart(
+          2,
+          "0"
+        ),
 
         String(
           date.getDate()
-        ).padStart(2, "0")
+        ).padStart(
+          2,
+          "0"
+        )
 
       ].join("-");
 
@@ -2189,6 +2435,10 @@ function renderAvailabilityDates() {
       document.createElement(
         "button"
       );
+
+
+    button.type =
+      "button";
 
 
     button.className =
@@ -2206,14 +2456,6 @@ function renderAvailabilityDates() {
 
     }
 
-
-    /*
-      Show date like:
-
-      WED
-      30
-      SEP
-    */
 
     button.innerHTML = `
 
@@ -2280,7 +2522,7 @@ function renderAvailabilityDates() {
 
 
 /* =====================================================
-   CHECK BOOKED MINUTE
+   CHECK A BOOKING AT A SPECIFIC MINUTE
 ===================================================== */
 
 function isMinuteBooked(
@@ -2302,54 +2544,61 @@ function isMinuteBooked(
       }
 
 
-      const start =
+      const bookingStart =
         timeToMinutes(
           b.time
         );
 
 
-      let end =
+      let bookingEnd =
         b.endTime
           ? timeToMinutes(
               b.endTime
             )
-          : start + 1;
+          : bookingStart + 1;
 
 
       /*
-        Same date.
+        Booking begins on this date.
       */
 
       if (
         b.date === date
       ) {
 
+        /*
+          Overnight:
+          10 PM → 1 AM
+        */
+
         if (
-          end <= start
+          bookingEnd <=
+          bookingStart
         ) {
 
-          /*
-            Overnight booking.
-          */
-
           return (
-            minute >= start ||
-            minute < end
+            minute >=
+              bookingStart ||
+            minute <
+              bookingEnd
           );
 
         }
 
 
         return (
-          minute >= start &&
-          minute < end
+          minute >=
+            bookingStart &&
+          minute <
+            bookingEnd
         );
 
       }
 
 
       /*
-        Previous day overnight.
+        Overnight booking from
+        previous date.
       */
 
       const previousDate =
@@ -2359,12 +2608,15 @@ function isMinuteBooked(
 
 
       if (
-        b.date === previousDate &&
-        end <= start
+        b.date ===
+          previousDate &&
+        bookingEnd <=
+          bookingStart
       ) {
 
         return (
-          minute < end
+          minute <
+          bookingEnd
         );
 
       }
@@ -2378,12 +2630,162 @@ function isMinuteBooked(
 
 
 /* =====================================================
-   AVAILABILITY TIME SLOTS
-   EVERY MINUTE
-   12-HOUR AM/PM
+   CHECK ENTIRE RANGE
 ===================================================== */
 
-function renderAvailabilitySlots() {
+function checkRangeAvailability(
+  date,
+  startTime,
+  endTime
+) {
+
+  if (
+    !startTime ||
+    !endTime
+  ) {
+
+    return {
+      available: false,
+      message:
+        "Please select both start and end time."
+    };
+
+  }
+
+
+  const start =
+    timeToMinutes(
+      startTime
+    );
+
+
+  let end =
+    timeToMinutes(
+      endTime
+    );
+
+
+  /*
+    Overnight booking.
+  */
+
+  if (
+    end <= start
+  ) {
+
+    end +=
+      1440;
+
+  }
+
+
+  if (
+    end <= start
+  ) {
+
+    return {
+      available: false,
+      message:
+        "Please select a valid end time."
+    };
+
+  }
+
+
+  /*
+    Minimum one hour.
+  */
+
+  if (
+    end - start <
+    60
+  ) {
+
+    return {
+      available: false,
+      message:
+        "Minimum booking duration is 1 hour."
+    };
+
+  }
+
+
+  /*
+    Check EVERY MINUTE.
+  */
+
+  for (
+    let minute = start;
+    minute < end;
+    minute++
+  ) {
+
+    let checkDate =
+      date;
+
+
+    let checkMinute =
+      minute;
+
+
+    /*
+      Crossed midnight.
+    */
+
+    if (
+      checkMinute >=
+      1440
+    ) {
+
+      checkMinute -=
+        1440;
+
+
+      checkDate =
+        getNextDateString(
+          date
+        );
+
+    }
+
+
+    if (
+      isMinuteBooked(
+        checkDate,
+        checkMinute
+      )
+    ) {
+
+      return {
+
+        available:
+          false,
+
+        message:
+          "This time range contains an existing booking."
+
+      };
+
+    }
+
+  }
+
+
+  return {
+    available:
+      true,
+
+    message:
+      "Available"
+  };
+}
+
+
+/* =====================================================
+   AVAILABILITY CLOCK
+===================================================== */
+
+function renderAvailabilityClock() {
 
   const container =
     $("availInfo");
@@ -2404,222 +2806,7 @@ function renderAvailabilitySlots() {
 
 
   /*
-    10:00 AM → 1:00 AM.
-
-    EVERY MINUTE.
-
-    This means:
-
-    10:00 AM
-    10:01 AM
-    10:02 AM
-    10:03 AM
-    ...
-    12:00 PM
-    12:01 PM
-    ...
-    11:59 PM
-    12:00 AM
-    12:01 AM
-    ...
-    1:00 AM
-  */
-
-
-  let html = `
-
-    <div class="availability-header">
-
-      <h2 class="availability-title">
-
-        ${formatDate(date)}
-
-      </h2>
-
-      <p class="availability-help">
-
-        Tap a time to start, then tap another
-        time to set how long you need.
-
-      </p>
-
-    </div>
-
-
-    <div
-      class="availability-time-grid"
-      id="availabilityTimeGrid"
-    >
-
-  `;
-
-
-  /*
-    10 AM = 600
-    1 AM next day = 1500
-  */
-
-  for (
-    let minute = 600;
-    minute <= 1500;
-    minute++
-  ) {
-
-    const actualMinute =
-      minute % 1440;
-
-
-    const time =
-      minutesToTime(
-        actualMinute
-      );
-
-
-    const booked =
-      isMinuteBooked(
-        date,
-        actualMinute
-      );
-
-
-    const selectedStart =
-      selectedStartTime ===
-      time;
-
-
-    const selectedEnd =
-      selectedEndTime ===
-      time;
-
-
-    let selectedClass =
-      "";
-
-
-    if (selectedStart) {
-
-      selectedClass =
-        "selected-start";
-
-    }
-
-
-    if (selectedEnd) {
-
-      selectedClass =
-        "selected-end";
-
-    }
-
-
-    html += `
-
-      <button
-
-        type="button"
-
-        class="
-          availability-time-slot
-          ${booked ? "booked" : ""}
-          ${selectedClass}
-        "
-
-        data-time="${time}"
-
-        ${
-          booked
-            ? "disabled"
-            : ""
-        }
-
-      >
-
-        ${formatTime(time)}
-
-      </button>
-
-    `;
-
-  }
-
-
-  html += `
-
-    </div>
-
-
-    <div
-      class="availability-selection"
-      id="availabilitySelection"
-    >
-
-      ${
-        selectedStartTime
-          ? `
-
-            <div>
-
-              <strong>
-                Start:
-              </strong>
-
-              ${formatTime(
-                selectedStartTime
-              )}
-
-              ${
-                selectedEndTime
-                  ? `
-
-                    <br>
-
-                    <strong>
-                      End:
-                    </strong>
-
-                    ${formatTime(
-                      selectedEndTime
-                    )}
-
-                  `
-                  : ""
-              }
-
-            </div>
-
-          `
-          : `
-            <span>
-              Select a start time.
-            </span>
-          `
-      }
-
-
-      ${
-        selectedStartTime &&
-        selectedEndTime
-          ? `
-
-            <button
-              type="button"
-              class="create"
-              id="bookAvailabilityButton"
-            >
-              Book This Time →
-            </button>
-
-          `
-          : ""
-      }
-
-    </div>
-
-  `;
-
-
-  /*
-    Existing bookings.
+    Existing bookings for this date.
   */
 
   const dayBookings =
@@ -2632,10 +2819,115 @@ function renderAvailabilitySlots() {
       )
       .sort(
         (a, b) =>
-          timeToMinutes(a.time) -
-          timeToMinutes(b.time)
+          timeToMinutes(
+            a.time
+          ) -
+          timeToMinutes(
+            b.time
+          )
       );
 
+
+  let html = `
+
+    <h2 class="availability-title">
+
+      ${formatDate(date)}
+
+    </h2>
+
+
+    <p class="availability-help">
+
+      Select the start and end time using the clock.
+      Every minute is available.
+
+    </p>
+
+
+    <div
+      class="availability-clock-panel"
+    >
+
+      <div class="clock-field">
+
+        <label>
+          Start Time
+        </label>
+
+        <input
+          id="availabilityStart"
+          type="time"
+          step="60"
+          value="${
+            selectedStartTime || ""
+          }"
+        >
+
+      </div>
+
+
+      <div class="clock-arrow">
+        →
+      </div>
+
+
+      <div class="clock-field">
+
+        <label>
+          End Time
+        </label>
+
+        <input
+          id="availabilityEnd"
+          type="time"
+          step="60"
+          value="${
+            selectedEndTime || ""
+          }"
+        >
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="availabilityStatus"
+      class="availability-status"
+    ></div>
+
+
+    <div
+      class="availability-actions"
+    >
+
+      <button
+        type="button"
+        class="create"
+        id="checkAvailabilityBtn"
+      >
+        Check Availability
+      </button>
+
+
+      <button
+        type="button"
+        class="create"
+        id="bookAvailabilityBtn"
+        style="display:none;"
+      >
+        Book This Time →
+      </button>
+
+    </div>
+
+  `;
+
+
+  /*
+    Existing bookings.
+  */
 
   if (
     dayBookings.length
@@ -2712,237 +3004,259 @@ function renderAvailabilitySlots() {
 
   }
 
+  else {
+
+    html += `
+
+      <div
+        class="availability-free"
+      >
+
+        No bookings on this date.
+
+      </div>
+
+    `;
+
+  }
+
 
   container.innerHTML =
     html;
 
 
+  const startInput =
+    $("availabilityStart");
+
+
+  const endInput =
+    $("availabilityEnd");
+
+
+  const checkButton =
+    $("checkAvailabilityBtn");
+
+
+  const bookButton =
+    $("bookAvailabilityBtn");
+
+
+  const status =
+    $("availabilityStatus");
+
+
   /*
-    Add click handlers to
-    every minute slot.
+    Check availability.
   */
 
-  const slots =
-    container.querySelectorAll(
-      ".availability-time-slot"
-    );
+  checkButton?.addEventListener(
+    "click",
+    () => {
+
+      const start =
+        startInput.value;
 
 
-  slots.forEach(
-    slot => {
-
-      slot.addEventListener(
-        "click",
-        () => {
-
-          const time =
-            slot.dataset.time;
+      const end =
+        endInput.value;
 
 
-          handleAvailabilityTimeClick(
-            time
-          );
+      const result =
+        checkRangeAvailability(
+          date,
+          start,
+          end
+        );
 
-        }
-      );
+
+      if (
+        !result.available
+      ) {
+
+        status.innerHTML = `
+
+          <strong>
+            Not Available
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            result.message
+          )}
+
+        `;
+
+
+        status.className =
+          "availability-status unavailable";
+
+
+        bookButton.style.display =
+          "none";
+
+
+        return;
+      }
+
+
+      /*
+        Save selected values.
+      */
+
+      selectedStartTime =
+        start;
+
+
+      selectedEndTime =
+        end;
+
+
+      status.innerHTML = `
+
+        <strong>
+          Available ✓
+        </strong>
+
+        <br>
+
+        ${escapeHTML(
+          formatTimeRange(
+            start,
+            end
+          )
+        )}
+
+      `;
+
+
+      status.className =
+        "availability-status available";
+
+
+      bookButton.style.display =
+        "inline-flex";
 
     }
   );
 
 
   /*
-    Book button.
+    Book selected availability.
   */
 
-  const bookButton =
-    $("bookAvailabilityButton");
+  bookButton?.addEventListener(
+    "click",
+    () => {
+
+      const start =
+        startInput.value;
 
 
-  if (bookButton) {
-
-    bookButton.addEventListener(
-      "click",
-      () => {
-
-        if (
-          !selectedStartTime ||
-          !selectedEndTime
-        ) {
-          return;
-        }
+      const end =
+        endInput.value;
 
 
-        openModal(
-          selectedAvailabilityDate
-        );
+      if (
+        !start ||
+        !end
+      ) {
 
-
-        $("time").value =
-          selectedStartTime;
-
-
-        $("endTime").value =
-          selectedEndTime;
+        return;
 
       }
-    );
-
-  }
-}
 
 
-/* =====================================================
-   TIME SLOT CLICK
-===================================================== */
-
-function handleAvailabilityTimeClick(
-  time
-) {
-
-  /*
-    FIRST CLICK:
-    Start time.
-  */
-
-  if (
-    !selectedStartTime ||
-    selectedEndTime
-  ) {
-
-    selectedStartTime =
-      time;
-
-    selectedEndTime =
-      null;
-
-    renderAvailability();
-
-    return;
-  }
+      selectedStartTime =
+        start;
 
 
-  /*
-    SECOND CLICK:
-    End time.
-  */
-
-  const start =
-    timeToMinutes(
-      selectedStartTime
-    );
+      selectedEndTime =
+        end;
 
 
-  let end =
-    timeToMinutes(
-      time
-    );
+      openModal(
+        selectedAvailabilityDate
+      );
 
 
-  /*
-    If end is after midnight,
-    move it to next day.
-  */
-
-  if (
-    end <= start
-  ) {
-
-    end += 1440;
-
-  }
+      setupTimeInputs();
 
 
-  /*
-    Minimum 1 hour.
-  */
-
-  if (
-    end - start < 60
-  ) {
-
-    alert(
-      "Minimum booking duration is 1 hour."
-    );
-
-    return;
-  }
+      $("time").value =
+        start;
 
 
-  /*
-    Check every minute for conflicts.
-  */
-
-  let conflict =
-    false;
-
-
-  for (
-    let minute = start;
-    minute < end;
-    minute++
-  ) {
-
-    let checkDate =
-      selectedAvailabilityDate;
-
-
-    let checkMinute =
-      minute;
-
-
-    if (
-      checkMinute >= 1440
-    ) {
-
-      checkMinute -=
-        1440;
-
-      checkDate =
-        getNextDateString(
-          selectedAvailabilityDate
-        );
+      $("endTime").value =
+        end;
 
     }
-
-
-    if (
-      isMinuteBooked(
-        checkDate,
-        checkMinute
-      )
-    ) {
-
-      conflict =
-        true;
-
-      break;
-
-    }
-
-  }
-
-
-  if (conflict) {
-
-    alert(
-      "This time range contains an existing booking."
-    );
-
-    return;
-  }
+  );
 
 
   /*
-    Save selected end.
+    Keep values synchronized
+    when the user changes the
+    native clock picker.
   */
 
-  selectedEndTime =
-    minutesToTime(
-      end % 1440
-    );
+  startInput?.addEventListener(
+    "change",
+    () => {
+
+      selectedStartTime =
+        startInput.value;
+
+      selectedEndTime =
+        null;
+
+      if (status) {
+
+        status.textContent =
+          "";
+
+        status.className =
+          "availability-status";
+
+      }
+
+      if (bookButton) {
+
+        bookButton.style.display =
+          "none";
+
+      }
+
+    }
+  );
 
 
-  renderAvailability();
+  endInput?.addEventListener(
+    "change",
+    () => {
+
+      selectedEndTime =
+        endInput.value;
+
+      if (status) {
+
+        status.textContent =
+          "";
+
+        status.className =
+          "availability-status";
+
+      }
+
+      if (bookButton) {
+
+        bookButton.style.display =
+          "none";
+
+      }
+
+    }
+  );
 }
 
 
@@ -2979,6 +3293,7 @@ function renderCustomers() {
         map.set(
           key,
           {
+
             name:
               b.customer ||
               "Unknown Customer",
@@ -2989,6 +3304,7 @@ function renderCustomers() {
 
             bookings:
               0
+
           }
         );
 
@@ -3023,57 +3339,74 @@ function renderCustomers() {
   container.innerHTML =
     list
       .map(
-        c => `
+        customer => {
 
-          <div class="customer-card">
+          const initials =
+            customer.name
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map(
+                x => x[0]
+              )
+              .join("")
+              .toUpperCase();
+
+
+          return `
 
             <div
-              class="customer-avatar"
+              class="customer-card"
             >
 
-              ${escapeHTML(
-                c.name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map(
-                    x => x[0]
-                  )
-                  .join("")
-                  .toUpperCase() ||
+              <div
+                class="customer-avatar"
+              >
+
+                ${escapeHTML(
+                  initials ||
                   "C"
-              )}
+                )}
+
+              </div>
+
+
+              <h3>
+
+                ${escapeHTML(
+                  customer.name
+                )}
+
+              </h3>
+
+
+              <p>
+
+                ${escapeHTML(
+                  customer.phone ||
+                  "No phone number"
+                )}
+
+              </p>
+
+
+              <p>
+
+                ${customer.bookings}
+
+                booking${
+                  customer.bookings === 1
+                    ? ""
+                    : "s"
+                }
+
+              </p>
 
             </div>
 
+          `;
 
-            <h3>
-              ${escapeHTML(
-                c.name
-              )}
-            </h3>
-
-
-            <p>
-              ${escapeHTML(
-                c.phone ||
-                "No phone number"
-              )}
-            </p>
-
-
-            <p>
-              ${c.bookings}
-              booking${
-                c.bookings === 1
-                  ? ""
-                  : "s"
-              }
-            </p>
-
-          </div>
-
-        `
+        }
       )
       .join("");
 }
@@ -3123,6 +3456,26 @@ function renderReports() {
       b =>
         b.status ===
         "Cancelled"
+    );
+
+
+  const customers =
+    new Set(
+      active
+        .map(
+          b =>
+            b.phone ||
+            b.customer
+        )
+        .filter(Boolean)
+    );
+
+
+  const birthday =
+    active.filter(
+      b =>
+        b.type ===
+        "Birthday Surprise"
     );
 
 
@@ -3179,6 +3532,32 @@ function renderReports() {
 
     </div>
 
+
+    <div class="report-card">
+
+      <strong>
+        ${customers.size}
+      </strong>
+
+      <span>
+        Unique Customers
+      </span>
+
+    </div>
+
+
+    <div class="report-card">
+
+      <strong>
+        ${birthday.length}
+      </strong>
+
+      <span>
+        Birthday Surprises
+      </span>
+
+    </div>
+
   `;
 }
 
@@ -3187,10 +3566,14 @@ function renderReports() {
    NAVIGATION
 ===================================================== */
 
-function showPage(page) {
+function showPage(
+  page
+) {
 
   document
-    .querySelectorAll(".page")
+    .querySelectorAll(
+      ".page"
+    )
     .forEach(
       section => {
 
@@ -3233,13 +3616,18 @@ function showPage(page) {
 
 
   if (
-    window.innerWidth <= 900
+    window.innerWidth <=
+    900
   ) {
 
     document
-      .querySelector("aside")
+      .querySelector(
+        "aside"
+      )
       ?.classList
-      .remove("open");
+      .remove(
+        "open"
+      );
 
   }
 
@@ -3307,9 +3695,13 @@ $("menu")
     () => {
 
       document
-        .querySelector("aside")
+        .querySelector(
+          "aside"
+        )
         ?.classList
-        .toggle("open");
+        .toggle(
+          "open"
+        );
 
     }
   );
