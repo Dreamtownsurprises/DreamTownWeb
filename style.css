@@ -1,13 +1,5 @@
-/* =====================================================
-   DREAM TOWN SURPRISES
-   PREMIUM ROMANTIC DASHBOARD
-===================================================== */
-
 :root {
-
   --bg: #160d0b;
-  --bg2: #211210;
-
   --sidebar: #24100f;
   --card: #271714;
   --card2: #301b18;
@@ -22,19 +14,16 @@
   --pink: #b5163d;
   --pink-dark: #82132f;
 
-  --border: rgba(222, 182, 140, .18);
+  --border: rgba(222,182,140,.18);
 
   --shadow:
     0 18px 45px rgba(0,0,0,.25);
 
   --radius: 18px;
-
 }
 
 
-/* =====================================================
-   RESET
-===================================================== */
+/* RESET */
 
 * {
   box-sizing: border-box;
@@ -51,7 +40,7 @@ body {
   background:
     radial-gradient(
       circle at 80% 0%,
-      rgba(145, 53, 60, .12),
+      rgba(145,53,60,.12),
       transparent 30%
     ),
     var(--bg);
@@ -84,9 +73,7 @@ button {
 }
 
 
-/* =====================================================
-   LOGIN
-===================================================== */
+/* LOGIN */
 
 .login-screen {
 
@@ -102,12 +89,12 @@ button {
   background:
     radial-gradient(
       circle at 20% 20%,
-      rgba(182, 35, 67, .16),
+      rgba(182,35,67,.16),
       transparent 32%
     ),
     radial-gradient(
       circle at 80% 80%,
-      rgba(215, 168, 102, .08),
+      rgba(215,168,102,.08),
       transparent 30%
     ),
     #130a09;
@@ -115,7 +102,7 @@ button {
 
 .login-card {
 
-  width: min(440px, 100%);
+  width: min(440px,100%);
 
   padding: 42px;
 
@@ -127,8 +114,8 @@ button {
   background:
     linear-gradient(
       145deg,
-      rgba(53, 27, 24, .98),
-      rgba(28, 14, 13, .98)
+      rgba(53,27,24,.98),
+      rgba(28,14,13,.98)
     );
 
   box-shadow:
@@ -137,19 +124,15 @@ button {
   text-align: center;
 }
 
-.login-logo,
-.sidebar-brand {
+.login-logo {
 
   display: flex;
 
   align-items: center;
 
-  gap: 12px;
-
-}
-
-.login-logo {
   justify-content: center;
+
+  gap: 12px;
 }
 
 .logo-heart,
@@ -175,7 +158,8 @@ button {
   font-size: 23px;
 
   box-shadow:
-    0 8px 25px rgba(145, 17, 50, .3);
+    0 8px 25px
+    rgba(145,17,50,.3);
 }
 
 .login-logo h1,
@@ -209,9 +193,7 @@ button {
   color: var(--muted);
 
   margin:
-    12px
-    0
-    30px;
+    12px 0 30px;
 
   font-size: 15px;
 }
@@ -225,9 +207,7 @@ button {
   font-size: 29px;
 
   margin:
-    0
-    0
-    7px;
+    0 0 7px;
 }
 
 .login-description {
@@ -235,9 +215,7 @@ button {
   color: var(--muted);
 
   margin:
-    0
-    0
-    25px;
+    0 0 25px;
 
   font-size: 15px;
 }
@@ -249,9 +227,7 @@ button {
   text-align: left;
 
   margin:
-    16px
-    0
-    7px;
+    16px 0 7px;
 
   font-size: 15px;
 
@@ -269,14 +245,12 @@ button {
   position: absolute;
 
   left: 15px;
-
   top: 50%;
 
-  transform: translateY(-50%);
+  transform:
+    translateY(-50%);
 
   color: var(--gold);
-
-  font-size: 15px;
 }
 
 .input-wrap input {
@@ -284,10 +258,7 @@ button {
   width: 100%;
 
   padding:
-    14px
-    15px
-    14px
-    43px;
+    14px 15px 14px 43px;
 
   border-radius: 11px;
 
@@ -319,9 +290,7 @@ button {
   text-align: right;
 
   margin:
-    11px
-    0
-    18px;
+    11px 0 18px;
 }
 
 .login-options button,
@@ -362,10 +331,6 @@ button {
   font-size: 16px;
 
   font-weight: 700;
-
-  box-shadow:
-    0 10px 25px
-    rgba(139, 16, 48, .28);
 }
 
 .auth-message {
@@ -389,9 +354,7 @@ button {
 }
 
 
-/* =====================================================
-   APP SHELL
-===================================================== */
+/* APP */
 
 .app-shell {
 
@@ -402,16 +365,14 @@ button {
   background:
     radial-gradient(
       circle at 80% 0%,
-      rgba(161, 57, 62, .06),
+      rgba(161,57,62,.06),
       transparent 30%
     ),
     var(--bg);
 }
 
 
-/* =====================================================
-   SIDEBAR
-===================================================== */
+/* SIDEBAR */
 
 aside {
 
@@ -448,12 +409,18 @@ aside {
 }
 
 .sidebar-brand {
-  padding:
-    0
-    7px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 7px;
 }
 
 .brand-symbol {
+
   width: 42px;
   height: 42px;
 
@@ -467,9 +434,7 @@ aside {
 .brand-caption {
 
   margin:
-    14px
-    7px
-    28px;
+    14px 7px 28px;
 
   color: #9f8f89;
 
@@ -498,8 +463,7 @@ nav button {
   gap: 13px;
 
   padding:
-    12px
-    13px;
+    12px 13px;
 
   border: 0;
 
@@ -518,10 +482,7 @@ nav button {
 
 nav button i {
   width: 19px;
-
   text-align: center;
-
-  font-size: 15px;
 }
 
 nav button:hover {
@@ -542,10 +503,37 @@ nav button.active {
     );
 
   color: white;
+}
 
-  box-shadow:
-    0 8px 22px
-    rgba(117, 12, 40, .22);
+.sidebar-location {
+  margin-top: 15px;
+}
+
+.sidebar-location a {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding:
+    11px 13px;
+
+  border:
+    1px solid
+    rgba(216,168,102,.18);
+
+  border-radius: 10px;
+
+  color: var(--gold);
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  background:
+    rgba(216,168,102,.035);
 }
 
 .sidebar-quote {
@@ -553,8 +541,7 @@ nav button.active {
   margin-top: auto;
 
   padding:
-    20px
-    8px;
+    20px 8px;
 
   color: #887973;
 
@@ -576,9 +563,7 @@ nav button.active {
   font-size: 16px;
 
   margin:
-    2px
-    0
-    8px;
+    2px 0 8px;
 }
 
 .sidebar-quote div {
@@ -587,7 +572,8 @@ nav button.active {
 
 .logout-btn {
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
   background:
     rgba(255,255,255,.025);
@@ -599,23 +585,15 @@ nav button.active {
   border-radius: 10px;
 
   font-size: 15px;
-
-  margin-top: 10px;
-}
-
-.logout-btn:hover {
-  color: white;
-  border-color: rgba(216,168,102,.35);
 }
 
 
-/* =====================================================
-   MAIN
-===================================================== */
+/* MAIN */
 
 main {
 
-  width: calc(100% - 255px);
+  width:
+    calc(100% - 255px);
 
   margin-left: 255px;
 
@@ -625,23 +603,20 @@ main {
 }
 
 
-/* =====================================================
-   TOPBAR
-===================================================== */
+/* TOPBAR */
 
 .topbar {
 
   height: 76px;
 
   padding:
-    0
-    30px;
+    0 30px;
 
   display: flex;
 
   align-items: center;
 
-  gap: 20px;
+  gap: 18px;
 
   border-bottom:
     1px solid
@@ -675,7 +650,8 @@ main {
 
 .top-search {
 
-  width: min(540px, 60vw);
+  width:
+    min(500px,55vw);
 
   position: relative;
 }
@@ -685,10 +661,10 @@ main {
   position: absolute;
 
   left: 15px;
-
   top: 50%;
 
-  transform: translateY(-50%);
+  transform:
+    translateY(-50%);
 
   color: #877871;
 }
@@ -707,16 +683,40 @@ main {
   border-radius: 12px;
 
   padding:
-    12px
-    15px
-    12px
-    43px;
+    12px 15px 12px 43px;
 
   outline: none;
 
   color: white;
 
   font-size: 15px;
+}
+
+.top-location {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding:
+    10px 13px;
+
+  border:
+    1px solid
+    rgba(216,168,102,.2);
+
+  border-radius: 10px;
+
+  color: var(--gold);
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  background:
+    rgba(216,168,102,.035);
 }
 
 .profile {
@@ -764,22 +764,16 @@ main {
 }
 
 .profile-details strong {
-
   font-size: 14px;
-
-  color: #eee2dc;
 }
 
 
-/* =====================================================
-   PAGES
-===================================================== */
+/* PAGE */
 
 .page {
 
   padding:
-    32px
-    35px;
+    32px 35px;
 }
 
 .page-header {
@@ -798,9 +792,7 @@ main {
 .page-header h1 {
 
   margin:
-    4px
-    0
-    6px;
+    4px 0 6px;
 
   font-family:
     "Playfair Display",
@@ -831,14 +823,8 @@ main {
   font-weight: 800;
 }
 
-.page-header .section-label {
-  margin-bottom: 4px;
-}
 
-
-/* =====================================================
-   HERO
-===================================================== */
+/* HERO */
 
 .hero {
 
@@ -878,48 +864,28 @@ main {
   box-shadow: var(--shadow);
 }
 
-.hero::after {
-
-  content: "";
-
-  position: absolute;
-
-  width: 300px;
-  height: 300px;
-
-  right: -80px;
-  bottom: -150px;
-
-  border-radius: 50%;
-
-  border:
-    1px solid
-    rgba(216,168,102,.14);
-}
-
 .hero-small {
 
   color: var(--gold);
 
-  font-size: 13px;
+  font-size: 14px;
 
   letter-spacing: 2px;
 
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .hero h1 {
 
   margin:
-    7px
-    0;
+    7px 0;
 
   font-family:
     "Playfair Display",
     serif;
 
   font-size:
-    clamp(32px, 4vw, 48px);
+    clamp(32px,4vw,48px);
 }
 
 .hero h1 span {
@@ -935,15 +901,7 @@ main {
   font-size: 17px;
 }
 
-.wave {
-  font-family: sans-serif;
-}
-
 .hero-message {
-
-  position: relative;
-
-  z-index: 2;
 
   text-align: right;
 
@@ -965,23 +923,19 @@ main {
 }
 
 
-/* =====================================================
-   STATS
-===================================================== */
+/* STATS */
 
 .stats-grid {
 
   display: grid;
 
   grid-template-columns:
-    repeat(4, 1fr);
+    repeat(4,1fr);
 
   gap: 15px;
 
   margin:
-    20px
-    0
-    30px;
+    20px 0 30px;
 }
 
 .stat-card {
@@ -1044,8 +998,6 @@ main {
   width: 45px;
   height: 45px;
 
-  flex-shrink: 0;
-
   display: grid;
 
   place-items: center;
@@ -1065,15 +1017,11 @@ main {
   display: block;
 
   font-size: 30px;
-
-  line-height: 1.1;
 }
 
 .stat-card span {
 
   display: block;
-
-  margin-top: 4px;
 
   color: #c8b9b2;
 
@@ -1081,16 +1029,14 @@ main {
 }
 
 
-/* =====================================================
-   DASHBOARD GRID
-===================================================== */
+/* DASHBOARD */
 
 .dashboard-grid {
 
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1fr)
+    minmax(0,1fr)
     300px;
 
   gap: 22px;
@@ -1110,9 +1056,7 @@ main {
 .section-heading h2 {
 
   margin:
-    4px
-    0
-    0;
+    4px 0 0;
 
   font-family:
     "Playfair Display",
@@ -1135,9 +1079,7 @@ main {
 }
 
 
-/* =====================================================
-   UPCOMING
-===================================================== */
+/* UPCOMING */
 
 .upcoming-list {
 
@@ -1153,17 +1095,16 @@ main {
   min-height: 82px;
 
   padding:
-    13px
-    15px;
+    13px 15px;
 
   display: grid;
 
   grid-template-columns:
     48px
-    minmax(150px, 1fr)
-    135px
-    100px
-    85px;
+    minmax(150px,1fr)
+    145px
+    130px
+    90px;
 
   align-items: center;
 
@@ -1185,6 +1126,7 @@ main {
   height: 48px;
 
   display: grid;
+
   place-items: center;
 
   border-radius: 12px;
@@ -1221,11 +1163,6 @@ main {
   line-height: 1.5;
 }
 
-.meta b {
-  color: #d5c6bf;
-  font-size: 12px;
-}
-
 .badge {
 
   display: inline-flex;
@@ -1235,17 +1172,16 @@ main {
   align-items: center;
 
   padding:
-    6px
-    10px;
+    6px 10px;
 
   border-radius: 30px;
 
   background:
-    rgba(188, 36, 74, .15);
+    rgba(188,36,74,.15);
 
   border:
     1px solid
-    rgba(188, 36, 74, .3);
+    rgba(188,36,74,.3);
 
   color: #e996a8;
 
@@ -1255,9 +1191,7 @@ main {
 }
 
 
-/* =====================================================
-   MINI CALENDAR
-===================================================== */
+/* CALENDAR */
 
 .card {
 
@@ -1301,17 +1235,13 @@ main {
   font-size: 20px;
 }
 
-.calendar-head strong {
-  font-size: 14px;
-}
-
 .weekdays,
 .calendar-days {
 
   display: grid;
 
   grid-template-columns:
-    repeat(7, 1fr);
+    repeat(7,1fr);
 
   gap: 5px;
 }
@@ -1326,7 +1256,6 @@ main {
 }
 
 .calendar-days {
-
   margin-top: 8px;
 }
 
@@ -1350,11 +1279,8 @@ main {
   font-size: 12px;
 }
 
-.calendar-days button:hover {
-  background: rgba(255,255,255,.06);
-}
-
 .calendar-days button.booked {
+
   background:
     rgba(178,22,60,.65);
 
@@ -1362,18 +1288,115 @@ main {
 }
 
 .calendar-days button.today {
+
   border:
-    1px solid
-    var(--gold);
+    1px solid var(--gold);
 
   color: var(--gold);
+}
+
+
+/* MAP */
+
+.map-card,
+.booking-map {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  border:
+    1px solid
+    rgba(216,168,102,.16);
+
+  border-radius: 14px;
+
+  background:
+    rgba(216,168,102,.035);
+
+  color: white;
+
+  text-decoration: none;
+
+  transition: .2s ease;
+}
+
+.map-card {
+
+  margin-top: 14px;
+
+  padding: 14px;
+}
+
+.booking-map {
+
+  padding: 15px;
+
+  width: 100%;
+}
+
+.map-card:hover,
+.booking-map:hover {
+
+  transform:
+    translateY(-2px);
+
+  border-color:
+    rgba(216,168,102,.4);
+
+  background:
+    rgba(216,168,102,.08);
+}
+
+.map-icon,
+.booking-map-icon {
+
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 11px;
+
+  background:
+    rgba(181,22,61,.18);
+
+  color: #e0a85f;
+
+  font-size: 18px;
+}
+
+.map-card strong,
+.booking-map strong {
+
+  display: block;
+
+  font-size: 14px;
+}
+
+.map-card span,
+.booking-map span {
+
+  display: block;
+
+  color: #988b85;
+
+  font-size: 12px;
+
+  margin-top: 3px;
 }
 
 .create-big {
 
   width: 100%;
 
-  margin-top: 15px;
+  margin-top: 14px;
 
   padding: 16px;
 
@@ -1393,16 +1416,10 @@ main {
   font-size: 15px;
 
   font-weight: 700;
-
-  box-shadow:
-    0 12px 25px
-    rgba(121, 17, 45, .2);
 }
 
 
-/* =====================================================
-   EVENT CARDS
-===================================================== */
+/* EVENTS */
 
 .event-heading {
   margin-top: 35px;
@@ -1413,7 +1430,7 @@ main {
   display: grid;
 
   grid-template-columns:
-    repeat(3, 1fr);
+    repeat(3,1fr);
 
   gap: 14px;
 }
@@ -1436,7 +1453,8 @@ main {
 
 .event-card:hover {
 
-  transform: translateY(-3px);
+  transform:
+    translateY(-3px);
 
   border-color:
     rgba(216,168,102,.25);
@@ -1453,9 +1471,10 @@ main {
 
 .event-card h3 {
 
-  margin: 0 0 6px;
+  margin:
+    0 0 6px;
 
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .event-card p {
@@ -1470,17 +1489,14 @@ main {
 }
 
 
-/* =====================================================
-   CREATE BUTTON
-===================================================== */
+/* BUTTON */
 
 .create {
 
   border: 0;
 
   padding:
-    12px
-    18px;
+    12px 18px;
 
   border-radius: 11px;
 
@@ -1499,9 +1515,7 @@ main {
 }
 
 
-/* =====================================================
-   BOOKING SEARCH
-===================================================== */
+/* SEARCH */
 
 .search-card {
 
@@ -1518,7 +1532,8 @@ main {
 
   top: 50%;
 
-  transform: translateY(-50%);
+  transform:
+    translateY(-50%);
 
   color: var(--gold);
 }
@@ -1528,16 +1543,12 @@ main {
   width: 100%;
 
   padding:
-    15px
-    15px
-    15px
-    45px;
+    15px 15px 15px 45px;
 
   border-radius: 13px;
 
   border:
-    1px solid
-    var(--border);
+    1px solid var(--border);
 
   background:
     rgba(255,255,255,.035);
@@ -1550,9 +1561,7 @@ main {
 }
 
 
-/* =====================================================
-   BOOKING TABLE
-===================================================== */
+/* BOOKING TABLE */
 
 .booking-table {
 
@@ -1577,7 +1586,7 @@ main {
     120px
     1.4fr
     1.2fr
-    100px
+    145px
     100px
     130px;
 
@@ -1586,8 +1595,7 @@ main {
   align-items: center;
 
   padding:
-    16px
-    18px;
+    16px 18px;
 }
 
 .booking-table-head {
@@ -1615,14 +1623,6 @@ main {
   font-size: 14px;
 }
 
-.fullrow > b {
-  color: #eee1da;
-}
-
-.fullrow span {
-  min-width: 0;
-}
-
 .row-actions {
 
   display: flex;
@@ -1635,8 +1635,7 @@ main {
   border: 0;
 
   padding:
-    7px
-    10px;
+    7px 10px;
 
   border-radius: 7px;
 
@@ -1659,9 +1658,7 @@ main {
 }
 
 
-/* =====================================================
-   AVAILABILITY
-===================================================== */
+/* AVAILABILITY */
 
 .availability-card {
 
@@ -1688,30 +1685,13 @@ main {
   overflow-x: auto;
 
   padding:
-    2px
-    2px
-    15px;
-
-  scrollbar-width: thin;
-}
-
-.availability-dates::-webkit-scrollbar {
-  height: 5px;
-}
-
-.availability-dates::-webkit-scrollbar-thumb {
-
-  background:
-    #6b4638;
-
-  border-radius: 20px;
+    2px 2px 15px;
 }
 
 .availability-date {
 
   flex:
-    0 0
-    78px;
+    0 0 78px;
 
   min-width: 78px;
 
@@ -1755,325 +1735,163 @@ main {
   background:
     linear-gradient(
       160deg,
-      #bc1239,
-      #8b1532
+      #a91d43,
+      #6e142d
     );
 
   border-color:
-    #d84262;
+    transparent;
 
   color: white;
-
-  box-shadow:
-    0 9px 25px
-    rgba(140, 17, 48, .25);
 }
 
-.avail-weekday {
+.availability-date .day-name {
 
   font-size: 11px;
 
-  font-weight: 800;
-
-  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-.availability-date strong {
+.availability-date .day-number {
 
-  font-size: 20px;
+  font-size: 22px;
 
-  line-height: 1;
-
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.avail-month {
+.availability-date .month-name {
 
-  font-size: 13px;
+  font-size: 10px;
 
-  font-weight: 600;
+  color: #a9968e;
 }
 
-
-/* Availability title */
-
-.availability-header {
-
-  margin-bottom: 20px;
+.availability-date.selected .month-name {
+  color: #ead4d2;
 }
 
-.availability-eyebrow {
-
-  color: var(--gold);
-
-  font-size: 13px;
-
-  letter-spacing: 2px;
-
-  font-weight: 800;
-}
-
-.availability-header h2 {
+.availability-title {
 
   margin:
-    6px
-    0
-    6px;
+    20px 0 15px;
 
   font-family:
     "Playfair Display",
     serif;
 
-  font-size: 30px;
+  font-size: 22px;
 }
 
-.availability-subtitle {
-
-  margin: 0;
-
-  color: #a99b95;
-
-  font-size: 15px;
-}
-
-.availability-instruction {
-
-  margin:
-    14px
-    0
-    20px;
-
-  color: #c7b9b2;
-
-  font-size: 16px;
-
-  line-height: 1.6;
-}
-
-
-/* Time grid */
-
-.availability-slots {
+.time-grid {
 
   display: grid;
 
   grid-template-columns:
-    repeat(8, minmax(95px, 1fr));
+    repeat(4,1fr);
 
-  gap: 9px;
+  gap: 10px;
 }
 
-.availability-slot {
+.time-slot {
 
   min-height: 48px;
 
   border:
     1px solid
-    rgba(208,180,155,.18);
+    rgba(216,168,102,.2);
 
-  border-radius: 12px;
+  border-radius: 10px;
 
   background:
     rgba(255,255,255,.025);
 
-  color: #ddd1cb;
+  color: #d7ccc7;
 
-  font-size: 15px;
+  font-size: 14px;
 
-  font-weight: 700;
-
-  transition: .18s ease;
+  transition: .2s ease;
 }
 
-.availability-slot:hover:not(:disabled) {
+.time-slot:hover:not(.booked) {
 
   border-color:
-    rgba(216,168,102,.65);
+    var(--gold);
 
   background:
-    rgba(216,168,102,.08);
+    rgba(216,168,102,.07);
 
-  transform:
-    translateY(-1px);
+  color: white;
 }
 
+.time-slot.booked {
 
-/* Past */
+  background:
+    rgba(185,35,61,.14);
 
-.availability-slot.past {
+  border-color:
+    rgba(185,35,61,.18);
 
-  opacity: .25;
+  color: #765f62;
 
   text-decoration: line-through;
 
   cursor: not-allowed;
 }
 
-
-/* Booked */
-
-.availability-slot.booked {
-
-  opacity: .28;
-
-  text-decoration: line-through;
-
-  background:
-    rgba(70,55,49,.4);
-
-  cursor: not-allowed;
-}
-
-
-/* Selected */
-
-.availability-slot.selected {
+.time-slot.selected {
 
   background:
     linear-gradient(
       135deg,
-      #b3163e,
-      #8d1736
+      #b01840,
+      #7d1531
     );
 
-  border-color:
-    #e15b78;
+  border-color: transparent;
 
   color: white;
-
-  box-shadow:
-    0 5px 18px
-    rgba(143,18,53,.3);
 }
-
-.availability-slot.range-start {
-
-  border-radius:
-    13px
-    5px
-    5px
-    13px;
-}
-
-.availability-slot.range-end {
-
-  border-radius:
-    5px
-    13px
-    13px
-    5px;
-}
-
-
-/* Help */
-
-.availability-help {
-
-  margin-top: 22px;
-
-  color: #998c86;
-
-  font-size: 15px;
-
-  line-height: 1.7;
-}
-
-
-/* Selection */
 
 .availability-selection {
+
+  margin-top: 20px;
+
+  padding: 18px;
+
+  border-radius: 15px;
+
+  border:
+    1px solid
+    rgba(216,168,102,.2);
+
+  background:
+    rgba(216,168,102,.035);
 
   display: flex;
 
   align-items: center;
 
+  justify-content: space-between;
+
   gap: 15px;
-
-  margin-top: 20px;
-
-  padding: 16px;
-
-  border-radius: 14px;
-
-  background:
-    rgba(255,255,255,.035);
-
-  border:
-    1px solid
-    rgba(216,168,102,.12);
-}
-
-.availability-selection > div {
-
-  min-width: 145px;
-}
-
-.availability-selection span {
-
-  display: block;
-
-  color: #81746e;
-
-  font-size: 10px;
-
-  letter-spacing: 1px;
-
-  font-weight: 800;
-
-  margin-bottom: 4px;
-}
-
-.availability-selection strong {
-
-  color: #f0e3dc;
-
-  font-size: 17px;
-}
-
-.availability-book-btn {
-
-  margin-left: auto;
-
-  padding:
-    12px
-    18px;
-
-  border: 0;
-
-  border-radius: 10px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #b3173e,
-      #8b1232
-    );
-
-  color: white;
-
-  font-size: 14px;
-
-  font-weight: 800;
 }
 
 
-/* =====================================================
-   CUSTOMERS
-===================================================== */
+/* CUSTOMERS */
 
 .customer-grid {
 
   display: grid;
 
   grid-template-columns:
-    repeat(3, 1fr);
+    repeat(3,1fr);
 
   gap: 15px;
 }
 
-.customer {
+.customer-card {
 
-  padding: 22px;
+  padding: 20px;
 
   border:
     1px solid
@@ -2082,92 +1900,93 @@ main {
   border-radius: 16px;
 
   background:
-    rgba(255,255,255,.03);
+    rgba(255,255,255,.035);
 }
 
-.customer h3 {
+.customer-avatar {
 
-  margin: 0 0 6px;
+  width: 45px;
+  height: 45px;
 
-  font-size: 18px;
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(181,22,61,.25);
+
+  color: #e3a6b3;
+
+  font-weight: 700;
+
+  margin-bottom: 12px;
 }
 
-.customer p {
-
-  color: #968983;
+.customer-card h3 {
 
   margin:
-    0
-    0
-    15px;
+    0 0 5px;
+
+  font-size: 17px;
+}
+
+.customer-card p {
+
+  margin:
+    3px 0;
+
+  color: #9b8c86;
 
   font-size: 14px;
 }
 
-.customer b {
 
-  color: var(--gold);
-
-  font-size: 14px;
-}
-
-
-/* =====================================================
-   REPORTS
-===================================================== */
+/* REPORTS */
 
 .reports-grid {
 
   display: grid;
 
   grid-template-columns:
-    repeat(3, 1fr);
+    repeat(3,1fr);
 
   gap: 18px;
 }
 
-.reports-grid article {
+.report-card {
 
-  padding: 28px;
+  padding: 25px;
 
-  border-radius: 17px;
+  border-radius: 18px;
 
   background:
-    linear-gradient(
-      135deg,
-      #321a17,
-      #241210
-    );
+    rgba(255,255,255,.035);
 
   border:
     1px solid
-    var(--border);
+    rgba(255,255,255,.06);
 }
 
-.reports-grid b {
+.report-card strong {
 
   display: block;
+
+  font-size: 34px;
 
   color: var(--gold);
-
-  font-size: 36px;
 }
 
-.reports-grid span {
+.report-card span {
 
-  display: block;
-
-  margin-top: 5px;
-
-  color: #a5948d;
+  color: #9d8f89;
 
   font-size: 14px;
 }
 
 
-/* =====================================================
-   MODAL
-===================================================== */
+/* MODAL */
 
 .modal {
 
@@ -2179,9 +1998,9 @@ main {
 
   display: flex;
 
-  align-items: center;
-
   justify-content: center;
+
+  align-items: center;
 
   padding: 20px;
 
@@ -2189,36 +2008,37 @@ main {
     rgba(0,0,0,.72);
 
   backdrop-filter:
-    blur(7px);
+    blur(8px);
 }
 
 .modal-box {
 
   width:
-    min(720px, 100%);
+    min(760px,100%);
 
   max-height:
     92vh;
 
   overflow-y: auto;
 
-  padding: 28px;
+  border:
+    1px solid
+    rgba(216,168,102,.18);
 
-  border-radius: 21px;
+  border-radius: 22px;
 
   background:
     linear-gradient(
       145deg,
-      #321a17,
-      #1e0e0d
+      #2d1715,
+      #1d0d0c
     );
 
-  border:
-    1px solid
-    rgba(216,168,102,.16);
-
   box-shadow:
-    0 35px 100px rgba(0,0,0,.55);
+    0 35px 100px
+    rgba(0,0,0,.6);
+
+  padding: 28px;
 }
 
 .modal-head {
@@ -2227,7 +2047,7 @@ main {
 
   justify-content: space-between;
 
-  align-items: start;
+  align-items: flex-start;
 
   margin-bottom: 25px;
 }
@@ -2235,34 +2055,30 @@ main {
 .modal-head h2 {
 
   margin:
-    5px
-    0
-    0;
+    4px 0 0;
 
   font-family:
     "Playfair Display",
     serif;
 
-  font-size: 27px;
+  font-size: 28px;
 }
 
 .modal-close {
 
-  width: 35px;
-  height: 35px;
+  width: 38px;
+  height: 38px;
 
   border: 0;
 
-  border-radius: 9px;
+  border-radius: 10px;
 
   background:
     rgba(255,255,255,.05);
 
-  color: #c5b5ae;
+  color: #d9cfcb;
 
-  font-size: 25px;
-
-  line-height: 1;
+  font-size: 24px;
 }
 
 .form-grid {
@@ -2270,7 +2086,7 @@ main {
   display: grid;
 
   grid-template-columns:
-    repeat(2, 1fr);
+    repeat(2,1fr);
 
   gap: 17px;
 }
@@ -2285,7 +2101,7 @@ main {
 
   margin-bottom: 7px;
 
-  color: #c9bab3;
+  color: #cbbdb7;
 
   font-size: 14px;
 
@@ -2312,16 +2128,13 @@ main {
   outline: none;
 
   padding:
-    12px
     13px;
 
   font-size: 15px;
 }
 
 .field select option {
-
-  background: #2a1714;
-
+  background: #291512;
   color: white;
 }
 
@@ -2341,19 +2154,17 @@ main {
 
   box-shadow:
     0 0 0 3px
-    rgba(216,168,102,.07);
+    rgba(216,168,102,.06);
 }
 
 .form-error {
 
-  min-height: 24px;
+  min-height: 22px;
 
   margin:
-    14px
-    0
-    0;
+    15px 0 0;
 
-  color: #e28b9a;
+  color: #df7f8f;
 
   font-size: 14px;
 }
@@ -2366,61 +2177,66 @@ main {
 
   gap: 10px;
 
-  margin-top: 8px;
+  margin-top: 18px;
 }
 
-.cancel-btn {
-
-  padding:
-    12px
-    18px;
-
-  border: 1px solid var(--border);
-
-  border-radius: 10px;
-
-  background:
-    rgba(255,255,255,.035);
-
-  color: #b8aaa4;
-
-  font-size: 15px;
-}
-
+.cancel-btn,
 .save-btn {
-
-  padding:
-    12px
-    20px;
 
   border: 0;
 
   border-radius: 10px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #b3173e,
-      #851530
-    );
-
-  color: white;
+  padding:
+    12px 20px;
 
   font-size: 15px;
 
   font-weight: 700;
 }
 
+.cancel-btn {
 
-/* =====================================================
-   MOBILE
-===================================================== */
+  background:
+    rgba(255,255,255,.06);
+
+  color: #c8bbb6;
+}
+
+.save-btn {
+
+  background:
+    linear-gradient(
+      135deg,
+      #b21740,
+      #821530
+    );
+
+  color: white;
+}
+
+
+/* EMPTY */
+
+.empty {
+
+  padding: 35px;
+
+  text-align: center;
+
+  color: #81736d;
+
+  font-size: 15px;
+}
+
+
+/* MOBILE */
 
 @media (max-width: 1100px) {
 
   .stats-grid {
     grid-template-columns:
-      repeat(2, 1fr);
+      repeat(2,1fr);
   }
 
   .dashboard-grid {
@@ -2429,12 +2245,28 @@ main {
 
   .event-grid {
     grid-template-columns:
-      repeat(2, 1fr);
+      repeat(2,1fr);
   }
 
-  .availability-slots {
+  .customer-grid {
     grid-template-columns:
-      repeat(4, minmax(95px, 1fr));
+      repeat(2,1fr);
+  }
+
+  .reports-grid {
+    grid-template-columns:
+      repeat(2,1fr);
+  }
+
+  .booking {
+    grid-template-columns:
+      48px
+      1fr
+      120px;
+  }
+
+  .booking .meta:nth-of-type(2) {
+    display: none;
   }
 
 }
@@ -2444,99 +2276,107 @@ main {
 
   aside {
 
+    position: fixed;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width:
+      min(82vw,320px);
+
+    z-index: 3000;
+
     transform:
       translateX(-105%);
 
     transition:
       transform .3s ease;
 
-    width:
-      min(82vw, 300px);
-
-    box-shadow:
-      15px 0 50px rgba(0,0,0,.35);
+    overflow-y: auto;
   }
 
   aside.open {
-    transform: translateX(0);
+    transform:
+      translateX(0);
   }
 
   main {
 
     width: 100%;
 
-    margin-left: 0;
+    margin-left: 0 !important;
   }
 
   .menu-button {
     display: block;
   }
 
-  .topbar {
-    padding:
-      0
-      18px;
-  }
-
-  .page {
-    padding:
-      25px
-      18px;
-  }
-
-  .booking-table {
-    overflow-x: auto;
-  }
-
-  .booking-table-head,
-  .fullrow {
-
-    min-width: 850px;
+  .top-location span {
+    display: none;
   }
 
 }
 
 
-@media (max-width: 650px) {
+@media (max-width: 700px) {
 
-  body {
-    font-size: 15px;
+  .page {
+
+    padding:
+      22px 16px;
+  }
+
+  .topbar {
+
+    height: 68px;
+
+    padding:
+      0 15px;
+
+    gap: 10px;
   }
 
   .top-search {
-    width: auto;
-    flex: 1;
+    width: 100%;
   }
 
   .profile-details {
     display: none;
   }
 
+  .profile-avatar {
+
+    width: 36px;
+    height: 36px;
+  }
+
   .hero {
 
-    min-height: 240px;
+    min-height: 245px;
 
     padding: 27px;
 
-    align-items: flex-end;
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    justify-content: center;
+
+    gap: 25px;
   }
 
   .hero-message {
-    display: none;
-  }
 
-  .hero h1 {
-    font-size: 32px;
-  }
+    text-align: left;
 
-  .hero p {
-    font-size: 15px;
+    font-size: 19px;
   }
 
   .stats-grid {
 
     grid-template-columns:
-      repeat(2, 1fr);
+      repeat(2,1fr);
 
     gap: 10px;
   }
@@ -2545,47 +2385,45 @@ main {
 
     padding: 15px;
 
-    min-height: 95px;
+    min-height: 100px;
   }
 
   .stat-icon {
 
     width: 38px;
     height: 38px;
+
+    font-size: 15px;
   }
 
   .stat-card strong {
-    font-size: 24px;
+    font-size: 25px;
   }
 
   .stat-card span {
     font-size: 12px;
   }
 
-  .booking {
-
-    grid-template-columns:
-      45px
-      1fr;
-
-    gap: 10px;
-  }
-
-  .booking .meta,
-  .booking .badge {
-    grid-column: 2;
-  }
-
   .event-grid {
+
     grid-template-columns: 1fr;
   }
 
-  .customer-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .customer-grid,
   .reports-grid {
+
     grid-template-columns: 1fr;
+  }
+
+  .page-header {
+
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .page-header h1 {
+    font-size: 29px;
   }
 
   .form-grid {
@@ -2600,74 +2438,49 @@ main {
     padding: 20px;
   }
 
-  .availability-card {
-    padding: 18px;
+  .booking-table {
+
+    overflow-x: auto;
   }
 
-  .availability-header h2 {
-    font-size: 26px;
+  .booking-table-head,
+  .fullrow {
+
+    min-width: 850px;
   }
 
-  .availability-slots {
+  .time-grid {
 
     grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-
-    gap: 8px;
-  }
-
-  .availability-slot {
-    min-height: 49px;
-    font-size: 14px;
+      repeat(2,1fr);
   }
 
   .availability-selection {
-    flex-wrap: wrap;
-  }
 
-  .availability-selection > div {
-    min-width: 125px;
-  }
+    flex-direction: column;
 
-  .availability-book-btn {
-
-    width: 100%;
-
-    margin-left: 0;
+    align-items: stretch;
   }
 
 }
 
 
-@media (max-width: 400px) {
+@media (max-width: 430px) {
 
-  .page {
-    padding:
-      20px
-      13px;
-  }
-
-  .topbar {
-    padding:
-      0
-      12px;
+  .login-card {
+    padding: 28px 20px;
   }
 
   .stats-grid {
-    gap: 7px;
+    grid-template-columns: 1fr;
   }
 
-  .stat-card {
-    padding: 12px;
+  .hero h1 {
+    font-size: 31px;
   }
 
-  .stat-icon {
-    display: none;
-  }
-
-  .availability-date {
-    flex-basis: 72px;
-    min-width: 72px;
+  .top-location {
+    padding: 9px;
   }
 
 }
