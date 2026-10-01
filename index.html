@@ -1327,6 +1327,50 @@
         <div class="field">
 
           <label>
+            Package Cost (₹)
+          </label>
+
+          <select
+            id="packageCost"
+          >
+
+            <option value="">
+              Select package
+            </option>
+
+            <option value="999">
+              ₹999
+            </option>
+
+            <option value="1499">
+              ₹1499
+            </option>
+
+            <option value="1999">
+              ₹1999
+            </option>
+
+            <option value="custom">
+              Custom Package
+            </option>
+
+          </select>
+
+          <input
+            id="customPackageCost"
+            class="custom-package-cost hidden"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="Enter custom package cost"
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label>
             Status *
           </label>
 
@@ -1343,8 +1387,8 @@
               Pending
             </option>
 
-            <option value="Completed">
-              Completed
+            <option value="Completed" disabled>
+              Completed (automatic)
             </option>
 
             <option value="Cancelled">
