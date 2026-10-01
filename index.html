@@ -370,6 +370,16 @@
 
       </button>
 
+      <button data-page="staff" id="staffNav" class="owner-only hidden">
+
+        <i class="fa-solid fa-user-shield"></i>
+
+        <span>
+          Staff / Users
+        </span>
+
+      </button>
+
     </nav>
 
 
@@ -1224,6 +1234,95 @@
       ></div>
 
     </section>
+
+
+    <!-- =================================================
+         STAFF / USERS
+    ================================================= -->
+
+    <section
+      id="staff"
+      class="page hidden owner-only-page"
+    >
+
+      <div class="page-header">
+
+        <div>
+
+          <span class="section-label">
+            TEAM ACCESS
+          </span>
+
+          <h1>
+            Staff / Users
+          </h1>
+
+          <p>
+            Approve new team accounts and manage dashboard access.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="staff-grid">
+
+        <div class="staff-panel card">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-label">
+                PENDING REQUESTS
+              </span>
+
+              <h2>
+                Waiting for approval
+              </h2>
+
+            </div>
+
+            <span id="pendingStaffCount" class="staff-count">0</span>
+
+          </div>
+
+          <div id="pendingStaffList"></div>
+
+        </div>
+
+
+        <div class="staff-panel card">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-label">
+                APPROVED TEAM
+              </span>
+
+              <h2>
+                Active users
+              </h2>
+
+            </div>
+
+            <span id="approvedStaffCount" class="staff-count">0</span>
+
+          </div>
+
+          <div id="approvedStaffList"></div>
+
+        </div>
+
+      </div>
+
+      <p id="staffMessage" class="staff-message"></p>
+
+    </section>
+
 
   </main>
 
