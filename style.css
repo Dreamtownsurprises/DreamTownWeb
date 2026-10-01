@@ -3451,6 +3451,50 @@ nav button.active {
   align-items: center;
 }
 
+.staff-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.staff-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(216,168,102,.22);
+  border-radius: 9px;
+  background: rgba(255,255,255,.035);
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.staff-refresh:hover:not(:disabled) {
+  border-color: rgba(216,168,102,.45);
+  background: rgba(216,168,102,.08);
+}
+
+.staff-refresh:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.staff-refresh.loading i {
+  animation: staffRefreshSpin .8s linear infinite;
+}
+
+@keyframes staffRefreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .staff-count {
   min-width: 34px;
   height: 34px;
