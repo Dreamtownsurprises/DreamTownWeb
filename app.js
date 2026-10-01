@@ -408,6 +408,10 @@ async function handleSignedIn(user) {
 
   await loadBookings();
 
+  await autoCompletePastBookings();
+
+  await loadBookings();
+
   renderAll();
 
   updateGreeting();
@@ -682,6 +686,9 @@ async function loadBookings() {
       notes:
         row.notes || "",
 
+      packageCost:
+        row.package_cost ?? "",
+
       status:
         row.status,
 
@@ -694,6 +701,96 @@ async function loadBookings() {
     }));
 
 }
+
+
+/* =====================================================
+   AUTOMATIC COMPLETION
+   A booking becomes Completed automatically when its
+   confirmed end time has passed. Time-unconfirmed and
+   cancelled bookings are ignored.
+===================================================== */
+
+function getBookingEndDateTime(booking) {
+
+  if (!booking.date || !booking.time || !booking.endTime) {
+    return null;
+  }
+
+  const startMinutes = timeToMinutes(booking.time);
+  let endMinutes = timeToMinutes(booking.endTime);
+
+  const [year, month, day] = booking.date.split("-").map(Number);
+
+  const endDate = new Date(year, month - 1, day);
+
+  if (endMinutes <= startMinutes) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  endDate.setHours(
+    Math.floor(endMinutes / 60),
+    endMinutes % 60,
+    0,
+    0
+  );
+
+  return endDate;
+}
+
+
+async function autoCompletePastBookings() {
+
+  if (!currentUser || !bookings.length) {
+    return;
+  }
+
+  const now = new Date();
+
+  const due = bookings.filter(booking => {
+
+    if (
+      booking.status === "Completed" ||
+      booking.status === "Cancelled" ||
+      !booking.time ||
+      !booking.endTime
+    ) {
+      return false;
+    }
+
+    const endDateTime = getBookingEndDateTime(booking);
+
+    return endDateTime && endDateTime <= now;
+  });
+
+  if (!due.length) {
+    return;
+  }
+
+  const results = await Promise.all(
+    due.map(booking =>
+      db
+        .from("bookings")
+        .update({ status: "Completed" })
+        .eq("id", booking.id)
+    )
+  );
+
+  const failed = results.find(result => result.error);
+
+  if (failed) {
+    console.error("Automatic completion error:", failed.error);
+  }
+}
+
+
+/* Run the completion check every minute while the dashboard is open. */
+setInterval(async () => {
+  if (!currentUser) return;
+
+  await autoCompletePastBookings();
+  await loadBookings();
+  renderAll();
+}, 60 * 1000);
 
 
 /* =====================================================
@@ -1215,6 +1312,7 @@ function renderBookings() {
           b.date,
           b.time,
           b.endTime,
+          b.packageCost,
           formatTime(b.time),
           formatTime(b.endTime),
           b.status
@@ -1292,6 +1390,12 @@ function renderBookings() {
 
             </div>
 
+            ${b.packageCost !== "" && b.packageCost !== null && b.packageCost !== undefined ? `
+              <div class="package-cost-small">
+                ₹${Number(b.packageCost).toLocaleString("en-IN")}
+              </div>
+            ` : ""}
+
           </div>
 
 
@@ -1329,7 +1433,7 @@ function renderBookings() {
 
           <div>
 
-            <span class="badge">
+            <span class="badge status-${String(b.status).toLowerCase()}">
 
               ${escapeHTML(
                 b.status
@@ -1433,6 +1537,10 @@ function openModal(
   $("type").value =
     "Anniversary Surprise";
 
+  $("packageCost").value = "";
+  $("customPackageCost").value = "";
+  updatePackageCostUI();
+
   $("bookedBy").value =
     staffProfile?.full_name ||
     "";
@@ -1495,6 +1603,47 @@ $("modal")
 
 
 /* =====================================================
+   PACKAGE COST
+===================================================== */
+
+function getSelectedPackageCost() {
+
+  const packageSelect = $("packageCost");
+  const customInput = $("customPackageCost");
+
+  if (!packageSelect) return "";
+
+  if (packageSelect.value === "custom") {
+    return customInput?.value.trim() || "";
+  }
+
+  return packageSelect.value || "";
+}
+
+function updatePackageCostUI() {
+
+  const packageSelect = $("packageCost");
+  const customInput = $("customPackageCost");
+
+  if (!packageSelect || !customInput) return;
+
+  const isCustom = packageSelect.value === "custom";
+
+  customInput.classList.toggle("hidden", !isCustom);
+  customInput.required = isCustom;
+
+  if (!isCustom) {
+    customInput.value = "";
+  }
+}
+
+$("packageCost")?.addEventListener(
+  "change",
+  updatePackageCostUI
+);
+
+
+/* =====================================================
    SAVE BOOKING
 ===================================================== */
 
@@ -1519,6 +1668,7 @@ async function saveBooking(event) {
     time: $("time").value,
     endTime: $("endTime").value,
     timeStatus,
+    packageCost: getSelectedPackageCost(),
     bookedBy: $("bookedBy").value.trim(),
     customer: $("customer").value.trim(),
     phone: $("phone").value.trim(),
@@ -1597,6 +1747,7 @@ async function saveBooking(event) {
     event_end_time: timeStatus === "confirmed" ? b.endTime : null,
 
     event_type: b.type,
+    package_cost: b.packageCost === "" ? null : Number(b.packageCost),
     booked_by: b.bookedBy,
     customer_name: b.customer || null,
     phone: b.phone || null,
@@ -1658,6 +1809,22 @@ window.editBooking =
     $("modalTitle").textContent = "Edit Booking";
     $("editId").value = b.id;
     $("type").value = b.type;
+    const savedPackageCost = String(b.packageCost ?? "");
+    const packageOptions = ["", "999", "1499", "1999"];
+
+    if (packageOptions.includes(savedPackageCost)) {
+      $("packageCost").value = savedPackageCost;
+      $("customPackageCost").value = "";
+    } else if (savedPackageCost) {
+      $("packageCost").value = "custom";
+      $("customPackageCost").value = savedPackageCost;
+    } else {
+      $("packageCost").value = "";
+      $("customPackageCost").value = "";
+    }
+
+    updatePackageCostUI();
+
     $("status").value = b.status;
     $("date").value = b.date;
     $("timeStatus").value = b.time ? "confirmed" : "pending";
@@ -1850,33 +2017,62 @@ function getPreviousDateString(dateString) {
 
 function isTimeBooked(date, time) {
 
-  const target = timeToMinutes(time);
+  const slotStart = timeToMinutes(time);
+  const slotEnd = slotStart + 30;
+
   const previousDate = getPreviousDateString(date);
 
   return bookings.some(b => {
 
+    /*
+      Cancelled and time-unconfirmed bookings do not
+      block any availability slot.
+    */
     if (b.status === "Cancelled" || !b.time) {
       return false;
     }
 
-    const start = timeToMinutes(b.time);
-    const end = b.endTime
+    const bookingStart = timeToMinutes(b.time);
+    let bookingEnd = b.endTime
       ? timeToMinutes(b.endTime)
-      : start + 30;
+      : bookingStart + 30;
 
-    /* Same-day booking */
-    if (b.date === date) {
-
-      if (end <= start) {
-        return target >= start;
-      }
-
-      return target >= start && target < end;
+    /*
+      A booking whose end is earlier than/equal to its start
+      is an overnight booking. Move its end into the next day.
+    */
+    if (bookingEnd <= bookingStart) {
+      bookingEnd += 24 * 60;
     }
 
-    /* Early morning portion of an overnight booking */
-    if (b.date === previousDate && end <= start) {
-      return target < end;
+    /* Same-day booking. */
+    if (b.date === date) {
+
+      return (
+        slotStart < bookingEnd &&
+        slotEnd > bookingStart
+      );
+
+    }
+
+    /*
+      Early-morning portion of an overnight booking made on
+      the previous date. The current day's slot is shifted
+      into the next-day timeline.
+    */
+    if (b.date === previousDate && bookingEnd > 24 * 60) {
+
+      const currentDaySlotStart =
+        slotStart + 24 * 60;
+
+      const currentDaySlotEnd =
+        slotEnd + 24 * 60;
+
+      return (
+        currentDaySlotStart < bookingEnd &&
+        currentDaySlotEnd > bookingStart
+      );
+
     }
 
     return false;
@@ -1884,6 +2080,7 @@ function isTimeBooked(date, time) {
   });
 
 }
+
 
 
 /* =====================================================
