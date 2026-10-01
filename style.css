@@ -3135,3 +3135,293 @@ main {
     font-size: 14px;
   }
 }
+
+/* =====================================================
+   DREAM TOWN ROMANTIC PINK / GOLD THEME
+   Inspired by the supplied Dream Town Surprises poster.
+===================================================== */
+
+:root {
+  --bg: #1b0b12;
+  --sidebar: #3a1021;
+  --card: #2b111b;
+  --card2: #3a1725;
+  --gold: #d9a85f;
+  --gold-light: #f2c77f;
+  --cream: #fff1f4;
+  --text: #f9e9ee;
+  --muted: #c9aeb8;
+  --pink: #c7194e;
+  --pink-dark: #8f1038;
+  --border: rgba(241, 184, 198, .18);
+  --shadow: 0 20px 55px rgba(0,0,0,.32);
+  --radius: 18px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(225,52,107,.20), transparent 28%),
+    radial-gradient(circle at 85% 8%, rgba(255,191,210,.11), transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(145,20,65,.18), transparent 38%),
+    #1b0b12;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.025), transparent 35%, rgba(255,190,210,.018) 70%, transparent);
+}
+
+.login-screen {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(215,25,79,.26), transparent 30%),
+    radial-gradient(circle at 82% 80%, rgba(241,190,101,.13), transparent 30%),
+    linear-gradient(135deg, #220b15, #3b1021 52%, #17080f);
+}
+
+.login-card,
+.modal-box,
+.card,
+.hero,
+.stat-card,
+.booking-table,
+.availability-clock-panel,
+.customer-card,
+.report-card {
+  border-color: rgba(244, 180, 199, .20);
+  box-shadow: 0 20px 55px rgba(55, 5, 25, .24);
+}
+
+.login-card {
+  background:
+    linear-gradient(145deg, rgba(67,18,38,.98), rgba(30,10,19,.98));
+}
+
+aside {
+  background:
+    linear-gradient(180deg, #451329 0%, #2b0c19 58%, #210914 100%);
+  border-right-color: rgba(244,180,199,.16);
+}
+
+.sidebar-brand h2,
+.login-logo h1 {
+  letter-spacing: .5px;
+}
+
+.brand-symbol,
+.logo-heart {
+  color: #ffb5cb;
+  text-shadow: 0 0 18px rgba(255,94,145,.35);
+}
+
+nav button.active {
+  background:
+    linear-gradient(135deg, #d31d55, #951039);
+  box-shadow: 0 8px 24px rgba(199,25,78,.20);
+}
+
+.topbar {
+  background: rgba(27,11,18,.84);
+  border-bottom-color: rgba(244,180,199,.10);
+  backdrop-filter: blur(12px);
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255,193,211,.10), transparent 24%),
+    linear-gradient(135deg, rgba(78,20,43,.94), rgba(43,14,27,.96));
+}
+
+.hero h1,
+.modal-head h2,
+.section-title,
+.availability-header h2 {
+  color: #fff0f4;
+}
+
+.hero h1 span,
+.section-label,
+.package-cost-small,
+.availability-clock-group label {
+  color: #f1b8c9;
+}
+
+.create,
+.save-btn,
+.login-btn,
+.availability-check-btn {
+  background: linear-gradient(135deg, #d21b52, #a20e3c);
+  box-shadow: 0 10px 25px rgba(199,25,78,.22);
+}
+
+.create:hover,
+.save-btn:hover,
+.login-btn:hover,
+.availability-check-btn:hover {
+  background: linear-gradient(135deg, #e12b63, #b71245);
+}
+
+.field input,
+.field select,
+.field textarea,
+.availability-clock-row select,
+.booking-clock-row select {
+  background: rgba(74, 24, 40, .68);
+  border-color: rgba(244,180,199,.17);
+}
+
+.field select option,
+.availability-clock-row select option,
+.booking-clock-row select option {
+  background: #3a1424;
+  color: #fff2f5;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.availability-clock-row select:focus,
+.booking-clock-row select:focus {
+  border-color: rgba(239,168,192,.70);
+  box-shadow: 0 0 0 3px rgba(210,27,82,.10);
+}
+
+.booking-table-head {
+  background: rgba(111, 28, 57, .22);
+  color: #d7aebb;
+}
+
+.fullrow {
+  border-top-color: rgba(244,180,199,.075);
+}
+
+.mini {
+  background: rgba(217,168,95,.12);
+  color: #efc47d;
+}
+
+.mini.danger {
+  background: rgba(199,25,78,.11);
+  color: #f08da9;
+}
+
+.badge {
+  background: rgba(199,25,78,.12);
+  border-color: rgba(231,76,124,.34);
+  color: #ff91ad;
+}
+
+.badge.status-completed {
+  background: rgba(46, 169, 93, .14);
+  border-color: rgba(79, 196, 120, .40);
+  color: #7ee0a0;
+  box-shadow: 0 0 14px rgba(61, 190, 105, .08);
+}
+
+.badge.status-cancelled {
+  background: rgba(140,140,140,.10);
+  border-color: rgba(180,180,180,.20);
+  color: #bdb4b8;
+}
+
+.package-cost-small {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.availability-clock-panel {
+  background:
+    linear-gradient(135deg, rgba(78,20,43,.42), rgba(43,14,27,.50));
+}
+
+.availability-time {
+  background: rgba(74,24,40,.52);
+  border-color: rgba(244,180,199,.12);
+}
+
+.availability-time:hover:not(:disabled),
+.availability-time.start-selected,
+.availability-time.end-selected {
+  background: linear-gradient(135deg, rgba(211,29,85,.92), rgba(145,16,55,.92));
+  border-color: rgba(255,194,213,.35);
+}
+
+.availability-time.booked {
+  background: rgba(88,30,48,.26);
+  color: #74636a;
+  border-color: rgba(150,78,104,.10);
+}
+
+.availability-date.selected {
+  background: linear-gradient(145deg, #d21b52, #94103a);
+  border-color: rgba(255,206,221,.28);
+  box-shadow: 0 12px 28px rgba(199,25,78,.20);
+}
+
+.availability-date {
+  background: rgba(60,18,34,.72);
+  border-color: rgba(244,180,199,.13);
+}
+
+.availability-selection {
+  background: rgba(82,23,44,.42);
+  border-color: rgba(244,180,199,.15);
+}
+
+.status-completed-row {
+  border-left: 3px solid #49c77a;
+}
+
+/* A little more of the poster's soft romantic glow. */
+.hero::after,
+.login-card::after {
+  content: "♥";
+  position: absolute;
+  pointer-events: none;
+  color: rgba(255,180,204,.08);
+  font-size: 90px;
+  right: 28px;
+  bottom: 8px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* =====================================================
+   PACKAGE COST SELECT
+===================================================== */
+
+.custom-package-cost {
+  margin-top: 10px;
+}
+
+.custom-package-cost.hidden {
+  display: none;
+}
+
+/* =====================================================
+   COMPLETED STATUS - GREEN
+===================================================== */
+
+.badge.status-completed {
+  background: rgba(34, 197, 94, .16) !important;
+  border: 1px solid rgba(74, 222, 128, .55) !important;
+  color: #86efac !important;
+  box-shadow: 0 0 16px rgba(34, 197, 94, .12);
+}
+
+.status-completed-row {
+  border-left: 4px solid #22c55e;
+}
