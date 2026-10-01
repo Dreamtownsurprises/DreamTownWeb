@@ -3191,6 +3191,11 @@ function staffUserHTML(user, view) {
           class="staff-action approve"
           onclick="approveStaff('${user.user_id}')"
         >Approve</button>
+        <button
+          type="button"
+          class="staff-action delete"
+          onclick="deleteStaff('${user.user_id}', '${escapeHTML(email).replace(/'/g, "\\'")}')"
+        >Delete</button>
       </div>`;
   } else if (view === "approved") {
     actions = `
@@ -3200,6 +3205,11 @@ function staffUserHTML(user, view) {
           class="staff-action disable"
           onclick="disableStaff('${user.user_id}')"
         >Disable</button>
+        <button
+          type="button"
+          class="staff-action delete"
+          onclick="deleteStaff('${user.user_id}', '${escapeHTML(email).replace(/'/g, "\\'")}')"
+        >Delete</button>
       </div>`;
   } else {
     actions = `
@@ -3209,6 +3219,11 @@ function staffUserHTML(user, view) {
           class="staff-action enable"
           onclick="approveStaff('${user.user_id}')"
         >Re-enable</button>
+        <button
+          type="button"
+          class="staff-action delete"
+          onclick="deleteStaff('${user.user_id}', '${escapeHTML(email).replace(/'/g, "\\'")}')"
+        >Delete</button>
       </div>`;
   }
 
@@ -3245,6 +3260,38 @@ window.approveStaff = async function(userId) {
   await loadStaffUsers();
 
 };
+
+window.deleteStaff = async function(userId, email) {
+
+  if (!isOwner()) return;
+
+  if (userId === currentUser?.id) {
+    alert("You cannot delete your own owner account.");
+    return;
+  }
+
+  const label = email || "this user";
+
+  if (!confirm(
+    `Delete ${label} permanently? This removes the user's dashboard access and Supabase account. This action cannot be undone.`
+  )) {
+    return;
+  }
+
+  const { error } = await db.rpc("delete_staff_user", {
+    target_user_id: userId
+  });
+
+  if (error) {
+    console.error("Delete staff error:", error);
+    alert(`Unable to delete user: ${error.message}`);
+    return;
+  }
+
+  await loadStaffUsers();
+
+};
+
 
 window.disableStaff = async function(userId) {
 
