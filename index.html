@@ -1395,32 +1395,48 @@
         </div>
 
 
-        <div class="field time-picker-field" id="startTimeField">
+        <div class="field full time-picker-field" id="startTimeField">
 
           <label>
             Start Time
           </label>
 
-          <input
-            id="time"
-            type="time"
-            step="60"
-          >
+          <input id="time" type="hidden">
+
+          <div class="booking-clock-row">
+
+            <select id="bookingStartHour" aria-label="Start hour"></select>
+
+            <span class="clock-colon">:</span>
+
+            <select id="bookingStartMinute" aria-label="Start minute"></select>
+
+            <select id="bookingStartPeriod" aria-label="Start AM or PM"></select>
+
+          </div>
 
         </div>
 
 
-        <div class="field time-picker-field" id="endTimeField">
+        <div class="field full time-picker-field" id="endTimeField">
 
           <label>
             End Time
           </label>
 
-          <input
-            id="endTime"
-            type="time"
-            step="60"
-          >
+          <input id="endTime" type="hidden">
+
+          <div class="booking-clock-row">
+
+            <select id="bookingEndHour" aria-label="End hour"></select>
+
+            <span class="clock-colon">:</span>
+
+            <select id="bookingEndMinute" aria-label="End minute"></select>
+
+            <select id="bookingEndPeriod" aria-label="End AM or PM"></select>
+
+          </div>
 
         </div>
 
