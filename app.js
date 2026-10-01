@@ -11,6 +11,7 @@ const db = window.supabase.createClient(
 let currentUser = null;
 let staffProfile = null;
 let staffUsers = [];
+let staffUsersLoading = false;
 let bookings = [];
 
 let calendarDate = new Date();
@@ -3060,25 +3061,79 @@ function updateOwnerUI() {
 
 async function loadStaffUsers() {
 
-  if (!isOwner()) return;
+  if (!isOwner() || staffUsersLoading) return;
 
-  const { data, error } = await db
-    .from("staff")
-    .select("user_id,full_name,email,status,role,created_at")
-    .order("created_at", { ascending: true });
+  staffUsersLoading = true;
 
-  if (error) {
-    console.error("Staff load error:", error);
-    if ($("staffMessage")) {
-      $("staffMessage").textContent = error.message;
-    }
-    return;
+  const refreshButton = $("refreshStaffUsers");
+
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.classList.add("loading");
+    refreshButton.innerHTML = `
+      <i class="fa-solid fa-rotate"></i>
+      Refreshing...
+    `;
   }
 
-  staffUsers = data || [];
-  renderStaffUsers();
+  try {
+
+    const { data, error } = await db
+      .from("staff")
+      .select("user_id,full_name,email,status,role,created_at")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Staff load error:", error);
+      if ($("staffMessage")) {
+        $("staffMessage").textContent = error.message;
+      }
+      return;
+    }
+
+    staffUsers = data || [];
+    renderStaffUsers();
+
+    if ($("staffMessage")) {
+      $("staffMessage").textContent =
+        `Last checked ${new Date().toLocaleTimeString("en-IN", {
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit"
+        })}`;
+    }
+
+  } finally {
+
+    staffUsersLoading = false;
+
+    if (refreshButton) {
+      refreshButton.disabled = false;
+      refreshButton.classList.remove("loading");
+      refreshButton.innerHTML = `
+        <i class="fa-solid fa-rotate"></i>
+        Refresh
+      `;
+    }
+
+  }
 
 }
+
+
+/* Automatically check for new account requests every 10 seconds
+   while the owner is viewing the Staff / Users page. */
+setInterval(async () => {
+
+  if (!currentUser || !isOwner()) return;
+
+  const staffPage = $("staff");
+
+  if (!staffPage || staffPage.classList.contains("hidden")) return;
+
+  await loadStaffUsers();
+
+}, 10 * 1000);
 
 function renderStaffUsers() {
 
@@ -3219,6 +3274,15 @@ window.disableStaff = async function(userId) {
   await loadStaffUsers();
 
 };
+
+const refreshStaffButton = $("refreshStaffUsers");
+
+if (refreshStaffButton) {
+  refreshStaffButton.addEventListener("click", () => {
+    loadStaffUsers();
+  });
+}
+
 
 /* =====================================================
    NAVIGATION
