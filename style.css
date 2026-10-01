@@ -3425,3 +3425,162 @@ nav button.active {
 .status-completed-row {
   border-left: 4px solid #22c55e;
 }
+
+
+/* =====================================================
+   STAFF / USERS
+===================================================== */
+
+.owner-only.hidden,
+.owner-only-page.hidden {
+  display: none !important;
+}
+
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.staff-panel {
+  padding: 22px;
+  min-height: 260px;
+}
+
+.staff-panel .section-heading {
+  align-items: center;
+}
+
+.staff-count {
+  min-width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(181,22,61,.16);
+  border: 1px solid rgba(181,22,61,.3);
+  color: var(--gold-light);
+  font-weight: 800;
+}
+
+.staff-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.staff-user:last-child {
+  border-bottom: 0;
+}
+
+.staff-user-main {
+  min-width: 0;
+}
+
+.staff-user-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.staff-user-email {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.staff-user-meta {
+  margin-top: 5px;
+  color: #81746f;
+  font-size: 12px;
+}
+
+.staff-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.staff-action {
+  border: 1px solid rgba(216,168,102,.2);
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,.035);
+  color: var(--gold-light);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.staff-action.approve,
+.staff-action.enable {
+  border-color: rgba(72,180,122,.3);
+  color: #9fe0b8;
+  background: rgba(72,180,122,.07);
+}
+
+.staff-action.disable {
+  border-color: rgba(190,45,64,.3);
+  color: #e59aa5;
+  background: rgba(190,45,64,.07);
+}
+
+.staff-message {
+  min-height: 24px;
+  margin-top: 15px;
+  color: var(--gold-light);
+}
+
+.staff-empty {
+  padding: 25px 5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.staff-status {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .3px;
+}
+
+.staff-status.approved {
+  color: #9fe0b8;
+  background: rgba(72,180,122,.1);
+}
+
+.staff-status.disabled {
+  color: #e59aa5;
+  background: rgba(190,45,64,.1);
+}
+
+.badge.status-completed,
+.status-completed {
+  background: rgba(72,180,122,.12) !important;
+  border-color: rgba(72,180,122,.28) !important;
+  color: #9fe0b8 !important;
+}
+
+@media (max-width: 850px) {
+  .staff-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-user {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .staff-actions {
+    width: 100%;
+  }
+
+  .staff-action {
+    flex: 1;
+  }
+}
