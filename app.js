@@ -10,6 +10,7 @@ const db = window.supabase.createClient(
 
 let currentUser = null;
 let staffProfile = null;
+let staffUsers = [];
 let bookings = [];
 
 let calendarDate = new Date();
@@ -322,6 +323,7 @@ async function initializeAuth() {
         currentUser = null;
 
         staffProfile = null;
+        staffUsers = [];
 
         bookings = [];
 
@@ -343,7 +345,7 @@ async function handleSignedIn(user) {
   const { data,error } =
     await db
       .from("staff")
-      .select("user_id,full_name")
+      .select("user_id,full_name,email,status,role,created_at")
       .eq("user_id",user.id)
       .maybeSingle();
 
@@ -367,6 +369,18 @@ async function handleSignedIn(user) {
 
     $("loginError").textContent =
       "Your account is not approved for this dashboard.";
+
+    return;
+  }
+
+  if (data.status !== "Approved") {
+
+    await db.auth.signOut();
+
+    $("loginError").textContent =
+      data.status === "Disabled"
+        ? "Your account has been disabled. Please contact the owner."
+        : "Your account is waiting for owner approval.";
 
     return;
   }
@@ -404,6 +418,8 @@ async function handleSignedIn(user) {
 
   $("profileInitials").textContent =
     initials || "DT";
+
+  updateOwnerUI();
 
 
   await loadBookings();
@@ -3021,6 +3037,190 @@ function renderReports() {
 
 
 /* =====================================================
+   STAFF / USERS
+===================================================== */
+
+function isOwner() {
+  return staffProfile?.role === "Owner";
+}
+
+function updateOwnerUI() {
+
+  const nav = $("staffNav");
+  const page = $("staff");
+  const owner = isOwner();
+
+  nav?.classList.toggle("hidden", !owner);
+
+  if (page && !owner) {
+    page.classList.add("hidden");
+  }
+
+}
+
+async function loadStaffUsers() {
+
+  if (!isOwner()) return;
+
+  const { data, error } = await db
+    .from("staff")
+    .select("user_id,full_name,email,status,role,created_at")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Staff load error:", error);
+    if ($("staffMessage")) {
+      $("staffMessage").textContent = error.message;
+    }
+    return;
+  }
+
+  staffUsers = data || [];
+  renderStaffUsers();
+
+}
+
+function renderStaffUsers() {
+
+  if (!isOwner()) return;
+
+  const pending = staffUsers.filter(
+    user => user.status === "Pending"
+  );
+
+  const approved = staffUsers.filter(
+    user =>
+      user.status === "Approved" &&
+      user.role !== "Owner"
+  );
+
+  const disabled = staffUsers.filter(
+    user =>
+      user.status === "Disabled" &&
+      user.role !== "Owner"
+  );
+
+  $("pendingStaffCount").textContent = pending.length;
+  $("approvedStaffCount").textContent = approved.length;
+
+  $("pendingStaffList").innerHTML =
+    pending.length
+      ? pending.map(user => staffUserHTML(user, "pending")).join("")
+      : `<div class="staff-empty">No pending account requests.</div>`;
+
+  $("approvedStaffList").innerHTML =
+    [...approved, ...disabled].length
+      ? [
+          ...approved.map(user => staffUserHTML(user, "approved")),
+          ...disabled.map(user => staffUserHTML(user, "disabled"))
+        ].join("")
+      : `<div class="staff-empty">No staff users yet.</div>`;
+
+}
+
+function staffUserHTML(user, view) {
+
+  const name = user.full_name || user.email || "Unnamed user";
+  const email = user.email || "Email unavailable";
+  const created = user.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-IN")
+    : "";
+
+  let actions = "";
+
+  if (view === "pending") {
+    actions = `
+      <div class="staff-actions">
+        <button
+          type="button"
+          class="staff-action approve"
+          onclick="approveStaff('${user.user_id}')"
+        >Approve</button>
+      </div>`;
+  } else if (view === "approved") {
+    actions = `
+      <div class="staff-actions">
+        <button
+          type="button"
+          class="staff-action disable"
+          onclick="disableStaff('${user.user_id}')"
+        >Disable</button>
+      </div>`;
+  } else {
+    actions = `
+      <div class="staff-actions">
+        <button
+          type="button"
+          class="staff-action enable"
+          onclick="approveStaff('${user.user_id}')"
+        >Re-enable</button>
+      </div>`;
+  }
+
+  return `
+    <div class="staff-user">
+      <div class="staff-user-main">
+        <div class="staff-user-name">${escapeHTML(name)}</div>
+        <div class="staff-user-email">${escapeHTML(email)}</div>
+        <div class="staff-user-meta">Created ${escapeHTML(created)}</div>
+        <span class="staff-status ${
+          view === "disabled" ? "disabled" : "approved"
+        }">
+          ${view === "pending" ? "PENDING" : view === "disabled" ? "DISABLED" : "APPROVED"}
+        </span>
+      </div>
+      ${actions}
+    </div>`;
+}
+
+window.approveStaff = async function(userId) {
+
+  if (!isOwner()) return;
+
+  const { error } = await db
+    .from("staff")
+    .update({ status: "Approved" })
+    .eq("user_id", userId);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  await loadStaffUsers();
+
+};
+
+window.disableStaff = async function(userId) {
+
+  if (!isOwner()) return;
+
+  if (userId === currentUser?.id) {
+    alert("You cannot disable your own owner account.");
+    return;
+  }
+
+  if (!confirm(
+    "Disable this staff account? They will no longer be able to sign in."
+  )) {
+    return;
+  }
+
+  const { error } = await db
+    .from("staff")
+    .update({ status: "Disabled" })
+    .eq("user_id", userId);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  await loadStaffUsers();
+
+};
+
+/* =====================================================
    NAVIGATION
 ===================================================== */
 
@@ -3081,6 +3281,17 @@ function showPage(page) {
   ) {
 
     renderAvailability();
+
+  }
+
+  if (page === "staff") {
+
+    if (!isOwner()) {
+      showPage("dashboard");
+      return;
+    }
+
+    loadStaffUsers();
 
   }
 
