@@ -1374,13 +1374,37 @@
         <div class="field">
 
           <label>
-            Start Time *
+            Time Status *
+          </label>
+
+          <select
+            id="timeStatus"
+            required
+          >
+
+            <option value="confirmed">
+              Time Confirmed
+            </option>
+
+            <option value="pending">
+              Time Yet to be Confirmed
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="field time-picker-field" id="startTimeField">
+
+          <label>
+            Start Time
           </label>
 
           <input id="time" type="hidden" required>
 
           <div
-            id="bookingStartPicker"
+            id="bookingStartTimes"
             class="custom-time-picker"
           ></div>
 
@@ -1391,16 +1415,16 @@
         </div>
 
 
-        <div class="field">
+        <div class="field time-picker-field" id="endTimeField">
 
           <label>
-            End Time *
+            End Time
           </label>
 
           <input id="endTime" type="hidden" required>
 
           <div
-            id="bookingEndPicker"
+            id="bookingEndTimes"
             class="custom-time-picker"
           ></div>
 
