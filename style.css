@@ -3093,3 +3093,46 @@ main {
     grid-template-columns: 1fr auto 1fr 1.15fr;
   }
 }
+
+
+/* =====================================================
+   FINAL ADD BOOKING TIME STATUS
+   Add Booking uses the simple native minute time inputs.
+===================================================== */
+
+#startTimeField input[type="time"],
+#endTimeField input[type="time"] {
+  width: 100%;
+  min-height: 50px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color-scheme: dark;
+}
+
+#startTimeField input[type="time"]:focus,
+#endTimeField input[type="time"]:focus {
+  border-color: rgba(216,168,102,.6);
+  box-shadow: 0 0 0 3px rgba(216,168,102,.06);
+  outline: none;
+}
+
+.time-picker-field.time-not-required {
+  opacity: .55;
+}
+
+.time-picker-field.time-not-required label::after {
+  content: " • Not required";
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.time-picker-field.time-not-required input {
+  cursor: not-allowed;
+}
