@@ -2211,23 +2211,51 @@ function renderAvailabilitySlots() {
   setAvailabilityPicker("Start", selectedStartTime);
   setAvailabilityPicker("End", selectedEndTime);
 
-  /* Dropdowns update the selected time but do not use a native time picker. */
+  /*
+    IMPORTANT:
+    Do NOT re-render while the user is selecting HH, MM,
+    and AM/PM. Re-rendering here was resetting the dropdowns
+    before the user could finish selecting a time.
+
+    Each selector now updates only its own time.
+    The selected time is stored only after all three values
+    (HH + MM + AM/PM) have been chosen.
+  */
+
   [
-    ["availStartHour", "availStartMinute", "availStartPeriod"],
-    ["availEndHour", "availEndMinute", "availEndPeriod"]
-  ].forEach(ids => {
+    ["availStartHour", "availStartMinute", "availStartPeriod", "Start"],
+    ["availEndHour", "availEndMinute", "availEndPeriod", "End"]
+  ].forEach(config => {
 
-    ids.forEach(id => {
+    const hour = $(config[0]);
+    const minute = $(config[1]);
+    const period = $(config[2]);
+    const prefix = config[3];
 
-      const element = $(id);
+    [hour, minute, period].forEach(element => {
 
-      if (element) {
-        element.addEventListener("change", () => {
-          selectedStartTime = getAvailabilityPickerTime("Start");
-          selectedEndTime = getAvailabilityPickerTime("End");
-          renderAvailabilitySlots();
-        });
+      if (!element) {
+        return;
       }
+
+      element.addEventListener("change", () => {
+
+        const time =
+          getAvailabilityPickerTime(prefix);
+
+        /*
+          Only save once HH + MM + AM/PM are complete.
+          Do not render here.
+        */
+        if (time) {
+          if (prefix === "Start") {
+            selectedStartTime = time;
+          } else {
+            selectedEndTime = time;
+          }
+        }
+
+      });
 
     });
 
