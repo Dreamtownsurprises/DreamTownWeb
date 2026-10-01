@@ -1318,9 +1318,10 @@ function renderBookings() {
           <div>
 
             ${escapeHTML(
-              b.time
-                ? formatTimeRange(b.time, b.endTime)
-                : "Time Yet to be Confirmed"
+              formatTimeRange(
+                b.time,
+                b.endTime
+              )
             )}
 
           </div>
@@ -1446,11 +1447,12 @@ function openModal(
   selectedStartTime = null;
   selectedEndTime = null;
 
-  updateTimePickerVisibility();
-  updateTimePickerVisibility();
+  initializeBookingTimePicker();
+  setBookingTimePicker("Start", null);
+  setBookingTimePicker("End", null);
+  updateTimeStatusUI();
 
 }
-
 
 function closeModal() {
 
@@ -1507,143 +1509,63 @@ async function saveBooking(event) {
 
   event.preventDefault();
 
-
-  const id =
-    $("editId").value;
-
+  const id = $("editId").value;
+  const timeStatus = $("timeStatus").value;
 
   const b = {
 
-    type:
-      $("type").value,
-
-    date:
-      $("date").value,
-
-    time:
-      $("time").value,
-
-    endTime:
-      $("endTime").value,
-
-    timeStatus:
-      $("timeStatus").value,
-
-    bookedBy:
-      $("bookedBy")
-        .value
-        .trim(),
-
-    customer:
-      $("customer")
-        .value
-        .trim(),
-
-    phone:
-      $("phone")
-        .value
-        .trim(),
-
-    status:
-      $("status").value,
-
-    notes:
-      $("notes")
-        .value
-        .trim()
+    type: $("type").value,
+    date: $("date").value,
+    time: $("time").value,
+    endTime: $("endTime").value,
+    timeStatus,
+    bookedBy: $("bookedBy").value.trim(),
+    customer: $("customer").value.trim(),
+    phone: $("phone").value.trim(),
+    status: $("status").value,
+    notes: $("notes").value.trim()
 
   };
 
-
   if (!b.date) {
-
-    $("formError").textContent =
-      "Please select a date.";
-
+    $("formError").textContent = "Please select a date.";
     return;
   }
 
-
-  /*
-    Time can be left unconfirmed.
-    In that case the booking reserves the date only.
-  */
-
-  if (b.timeStatus === "pending") {
-
-    b.time = "";
-    b.endTime = "";
-
-  }
-
-  else {
+  /* Time is required only when confirmed. */
+  if (timeStatus === "confirmed") {
 
     if (!b.time) {
-
-      $("formError").textContent =
-        "Please select a start time.";
-
+      $("formError").textContent = "Please select a start time.";
       return;
     }
 
     if (!b.endTime) {
-
-      $("formError").textContent =
-        "Please select an end time.";
-
+      $("formError").textContent = "Please select an end time.";
       return;
     }
 
-    const start =
-      timeToMinutes(b.time);
+    const startMinutes = timeToMinutes(b.time);
+    let endMinutes = timeToMinutes(b.endTime);
 
-    const end =
-      timeToMinutes(b.endTime);
-
-    let normalizedEnd = end;
-
-    if (normalizedEnd <= start) {
-      normalizedEnd += 24 * 60;
+    if (endMinutes <= startMinutes) {
+      endMinutes += 24 * 60;
     }
 
-    if (normalizedEnd - start < 60) {
-
-      $("formError").textContent =
-        "Minimum booking duration is 1 hour.";
-
+    if (endMinutes - startMinutes < 60) {
+      $("formError").textContent = "Minimum booking duration is 1 hour.";
       return;
     }
 
-  }
-
-
-  /*
-    Check conflicts only when BOTH bookings have confirmed times.
-
-    A booking with "Time Yet to be Confirmed" does NOT reserve
-    the whole date. It is only a placeholder until the time is
-    confirmed later. Multiple such bookings are allowed on the
-    same date, and confirmed bookings may also be added to that date.
-  */
-
-  const duplicate =
-    bookings.find(x => {
+    const duplicate = bookings.find(x => {
 
       if (
         x.id === id ||
         x.date !== b.date ||
-        x.status === "Cancelled"
+        x.status === "Cancelled" ||
+        !x.time ||
+        !x.endTime
       ) {
-        return false;
-      }
-
-      /* Ignore existing bookings whose time is not confirmed. */
-      if (!x.time || !x.endTime) {
-        return false;
-      }
-
-      /* A new time-unconfirmed booking never overlaps anything. */
-      if (!b.time || !b.endTime) {
         return false;
       }
 
@@ -1653,115 +1575,70 @@ async function saveBooking(event) {
         x.time,
         x.endTime
       );
+
     });
 
+    if (duplicate) {
+      $("formError").textContent =
+        `This time overlaps with ${duplicate.bookedBy}'s booking (${formatTimeRange(duplicate.time, duplicate.endTime)}).`;
+      return;
+    }
 
-  if (duplicate) {
-
-    $("formError").textContent =
-      `This time overlaps with ${duplicate.bookedBy}'s booking (${formatTimeRange(
-        duplicate.time,
-        duplicate.endTime ||
-        minutesToTime(
-          timeToMinutes(
-            duplicate.time
-          ) + 30
-        )
-      )}).`;
-
-    return;
   }
 
-
-  $("formError").textContent =
-    "Saving booking…";
-
+  $("formError").textContent = "Saving booking…";
 
   const row = {
 
-    event_date:
-      b.date,
+    event_date: b.date,
 
-    event_time:
-      b.time || null,
+    event_time: timeStatus === "confirmed" ? b.time : null,
 
-    event_end_time:
-      b.endTime || null,
+    event_end_time: timeStatus === "confirmed" ? b.endTime : null,
 
-    event_type:
-      b.type,
-
-    booked_by:
-      b.bookedBy,
-
-    customer_name:
-      b.customer || null,
-
-    phone:
-      b.phone || null,
-
-    status:
-      b.status,
-
-    notes:
-      b.notes || null
+    event_type: b.type,
+    booked_by: b.bookedBy,
+    customer_name: b.customer || null,
+    phone: b.phone || null,
+    status: b.status,
+    notes: b.notes || null
 
   };
 
-
   let result;
-
 
   if (id) {
 
-    result =
-      await db
-        .from("bookings")
-        .update(row)
-        .eq("id",id)
-        .select()
-        .single();
+    result = await db
+      .from("bookings")
+      .update(row)
+      .eq("id", id)
+      .select()
+      .single();
+
+  } else {
+
+    result = await db
+      .from("bookings")
+      .insert({
+        ...row,
+        created_by: currentUser.id
+      })
+      .select()
+      .single();
 
   }
-
-  else {
-
-    result =
-      await db
-        .from("bookings")
-        .insert({
-
-          ...row,
-
-          created_by:
-            currentUser.id
-
-        })
-        .select()
-        .single();
-
-  }
-
 
   if (result.error) {
-
-    $("formError").textContent =
-      result.error.message;
-
+    $("formError").textContent = result.error.message;
     return;
   }
 
-
   closeModal();
-
-
   await loadBookings();
-
-
   renderAll();
 
 }
-
 
 /* =====================================================
    EDIT
@@ -1770,39 +1647,34 @@ async function saveBooking(event) {
 window.editBooking =
   function(id) {
 
-    const b =
-      bookings.find(
-        x => x.id === id
-      );
+    const b = bookings.find(x => x.id === id);
 
     if (!b) {
       return;
     }
 
-    $("modal")
-      .classList
-      .remove("hidden");
+    $("modal").classList.remove("hidden");
 
-    $("modalTitle").textContent =
-      "Edit Booking";
-
+    $("modalTitle").textContent = "Edit Booking";
     $("editId").value = b.id;
     $("type").value = b.type;
     $("status").value = b.status;
     $("date").value = b.date;
     $("timeStatus").value = b.time ? "confirmed" : "pending";
-    $("time").value = b.time;
+    $("time").value = b.time || "";
     $("endTime").value = b.endTime || "";
     $("bookedBy").value = b.bookedBy;
     $("customer").value = b.customer;
     $("phone").value = b.phone;
     $("notes").value = b.notes;
     $("formError").textContent = "";
-    updateTimePickerVisibility();
 
+    initializeBookingTimePicker();
+    setBookingTimePicker("Start", b.time || null);
+    setBookingTimePicker("End", b.endTime || null);
+    updateTimeStatusUI();
 
   };
-
 
 /* =====================================================
    DELETE
@@ -1983,15 +1855,7 @@ function isTimeBooked(date, time) {
 
   return bookings.some(b => {
 
-    if (b.status === "Cancelled") {
-      return false;
-    }
-
-    /*
-      A time-unconfirmed booking does not block any slot.
-      Its time will be assigned later.
-    */
-    if (!b.time || !b.endTime) {
+    if (b.status === "Cancelled" || !b.time) {
       return false;
     }
 
@@ -2026,6 +1890,141 @@ function isTimeBooked(date, time) {
    AVAILABILITY TIME GRID
 ===================================================== */
 
+function availabilityHourOptions() {
+
+  let html = '<option value="">HH</option>';
+
+  for (let h = 1; h <= 12; h++) {
+    html += `<option value="${String(h).padStart(2,"0")}">${String(h).padStart(2,"0")}</option>`;
+  }
+
+  return html;
+
+}
+
+
+function availabilityMinuteOptions() {
+
+  let html = '<option value="">MM</option>';
+
+  for (let m = 0; m < 60; m++) {
+    html += `<option value="${String(m).padStart(2,"0")}">${String(m).padStart(2,"0")}</option>`;
+  }
+
+  return html;
+
+}
+
+
+function availabilityPeriodOptions() {
+
+  return `
+    <option value="">AM/PM</option>
+    <option value="AM">AM</option>
+    <option value="PM">PM</option>
+  `;
+
+}
+
+
+function availabilityTimeToParts(time) {
+
+  if (!time) {
+    return {
+      hour: "",
+      minute: "",
+      period: ""
+    };
+  }
+
+  const total = timeToMinutes(time);
+  const hour24 = Math.floor(total / 60) % 24;
+  const minute = total % 60;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+
+  return {
+    hour: String(hour12).padStart(2, "0"),
+    minute: String(minute).padStart(2, "0"),
+    period
+  };
+
+}
+
+
+function availabilityPartsToTime(hour, minute, period) {
+
+  if (!hour || minute === "" || !period) {
+    return null;
+  }
+
+  let h = Number(hour);
+  const m = Number(minute);
+
+  if (period === "AM") {
+    if (h === 12) h = 0;
+  } else {
+    if (h !== 12) h += 12;
+  }
+
+  return minutesToTime((h * 60) + m);
+
+}
+
+
+function setAvailabilityPicker(prefix, time) {
+
+  const parts = availabilityTimeToParts(time);
+
+  const hour = $(`avail${prefix}Hour`);
+  const minute = $(`avail${prefix}Minute`);
+  const period = $(`avail${prefix}Period`);
+
+  if (!hour || !minute || !period) return;
+
+  hour.value = parts.hour;
+  minute.value = parts.minute;
+  period.value = parts.period;
+
+}
+
+
+function getAvailabilityPickerTime(prefix) {
+
+  const hour = $(`avail${prefix}Hour`);
+  const minute = $(`avail${prefix}Minute`);
+  const period = $(`avail${prefix}Period`);
+
+  if (!hour || !minute || !period) return null;
+
+  return availabilityPartsToTime(
+    hour.value,
+    minute.value,
+    period.value
+  );
+
+}
+
+
+function availabilityTimeIsInBusinessWindow(time) {
+
+  if (!time) return false;
+
+  const minutes = timeToMinutes(time);
+  const start = 10 * 60;
+  const end = 25 * 60;
+
+  let value = minutes;
+
+  if (value < start) {
+    value += 24 * 60;
+  }
+
+  return value >= start && value <= end;
+
+}
+
+
 function renderAvailabilitySlots() {
 
   const container = $("availInfo");
@@ -2034,59 +2033,96 @@ function renderAvailabilitySlots() {
     return;
   }
 
-  const date = selectedAvailabilityDate;
-
   let html = `
     <div class="availability-clock-panel">
 
       <div class="availability-clock-group">
-        <div class="availability-clock-title">Start Time</div>
-        <div class="availability-clock-controls">
-          ${buildAvailabilityTimeSelects("availabilityStart")}
+
+        <label>Start Time</label>
+
+        <div class="availability-clock-row">
+
+          <select id="availStartHour" aria-label="Start hour">
+            ${availabilityHourOptions()}
+          </select>
+
+          <span class="clock-colon">:</span>
+
+          <select id="availStartMinute" aria-label="Start minute">
+            ${availabilityMinuteOptions()}
+          </select>
+
+          <select id="availStartPeriod" aria-label="Start AM or PM">
+            ${availabilityPeriodOptions()}
+          </select>
+
         </div>
+
       </div>
 
       <div class="availability-clock-arrow">→</div>
 
       <div class="availability-clock-group">
-        <div class="availability-clock-title">End Time</div>
-        <div class="availability-clock-controls">
-          ${buildAvailabilityTimeSelects("availabilityEnd")}
+
+        <label>End Time</label>
+
+        <div class="availability-clock-row">
+
+          <select id="availEndHour" aria-label="End hour">
+            ${availabilityHourOptions()}
+          </select>
+
+          <span class="clock-colon">:</span>
+
+          <select id="availEndMinute" aria-label="End minute">
+            ${availabilityMinuteOptions()}
+          </select>
+
+          <select id="availEndPeriod" aria-label="End AM or PM">
+            ${availabilityPeriodOptions()}
+          </select>
+
         </div>
+
       </div>
 
       <button
         type="button"
-        class="availability-check-button"
-        onclick="checkAvailabilityClock()"
+        class="availability-check-btn"
+        id="checkAvailabilityBtn"
       >
         Check Availability
       </button>
 
     </div>
 
-    <div id="availabilityClockMessage" class="availability-clock-message">
+    <p class="availability-help">
       Choose any time from 10:00 AM to 1:00 AM. You can select every minute.
-    </div>
+    </p>
+
+    <div id="availabilityCheckResult"></div>
 
     <div class="availability-header">
+
       <div>
         <span class="section-label">SELECT TIME</span>
-        <h2>${formatDate(date)}</h2>
+        <h2>${formatDate(selectedAvailabilityDate)}</h2>
       </div>
+
       <p class="availability-instruction">
         Tap a time to start, then tap another to set how long you need.
-        Stay 3–4 hours if your event needs it.
       </p>
+
     </div>
 
     <div class="availability-time-grid">
   `;
 
+  /* 10:00 AM to 1:00 AM next day, every 30 minutes */
   for (let minutes = 10 * 60; minutes <= 25 * 60; minutes += 30) {
 
     const time = minutesToTime(minutes);
-    const booked = isTimeBooked(date, time);
+    const booked = isTimeBooked(selectedAvailabilityDate, time);
     const isStart = selectedStartTime === time;
     const isEnd = selectedEndTime === time;
 
@@ -2117,8 +2153,8 @@ function renderAvailabilitySlots() {
       <button
         type="button"
         class="${classes}"
-        ${disabled ? "disabled" : ""}
         data-availability-time="${time}"
+        ${disabled ? "disabled" : ""}
       >
         ${formatTime(time)}
       </button>
@@ -2134,6 +2170,7 @@ function renderAvailabilitySlots() {
       <div class="availability-selection">
 
         <div class="availability-selected-times">
+
           <div>
             <span>START TIME</span>
             <strong>${formatTime(selectedStartTime)}</strong>
@@ -2143,15 +2180,18 @@ function renderAvailabilitySlots() {
 
           <div>
             <span>END TIME</span>
-            <strong>${selectedEndTime ? formatTime(selectedEndTime) : "Select end"}</strong>
+            <strong>
+              ${selectedEndTime ? formatTime(selectedEndTime) : "Select end"}
+            </strong>
           </div>
+
         </div>
 
         ${selectedEndTime ? `
           <button
             type="button"
             class="create"
-            onclick="bookSelectedAvailability()"
+            id="availabilityContinueBtn"
           >
             Continue Booking →
           </button>
@@ -2167,118 +2207,88 @@ function renderAvailabilitySlots() {
 
   container.innerHTML = html;
 
-  attachAvailabilityClockListeners();
+  /* Restore the selected values into the 12-hour controls. */
+  setAvailabilityPicker("Start", selectedStartTime);
+  setAvailabilityPicker("End", selectedEndTime);
 
-  container.querySelectorAll("[data-availability-time]").forEach(button => {
-    button.addEventListener("click", () => {
-      selectAvailabilityTime(button.dataset.availabilityTime);
+  /* Dropdowns update the selected time but do not use a native time picker. */
+  [
+    ["availStartHour", "availStartMinute", "availStartPeriod"],
+    ["availEndHour", "availEndMinute", "availEndPeriod"]
+  ].forEach(ids => {
+
+    ids.forEach(id => {
+
+      const element = $(id);
+
+      if (element) {
+        element.addEventListener("change", () => {
+          selectedStartTime = getAvailabilityPickerTime("Start");
+          selectedEndTime = getAvailabilityPickerTime("End");
+          renderAvailabilitySlots();
+        });
+      }
+
     });
+
   });
 
-  syncAvailabilityClockSelectors();
+  container
+    .querySelectorAll("[data-availability-time]")
+    .forEach(button => {
+
+      button.addEventListener("click", () => {
+        selectAvailabilityTime(button.dataset.availabilityTime);
+      });
+
+    });
+
+  const checkButton = $("checkAvailabilityBtn");
+
+  if (checkButton) {
+
+    checkButton.addEventListener("click", checkAvailabilityFromPicker);
+
+  }
+
+  const continueButton = $("availabilityContinueBtn");
+
+  if (continueButton) {
+
+    continueButton.addEventListener("click", bookSelectedAvailability);
+
+  }
 
 }
 
 
-function buildAvailabilityTimeSelects(prefix) {
+function checkAvailabilityFromPicker() {
 
-  let hourOptions = `<option value="">HH</option>`;
-  let minuteOptions = `<option value="">MM</option>`;
-
-  for (let h = 1; h <= 12; h++) {
-    hourOptions += `<option value="${String(h).padStart(2,"0")}">${String(h).padStart(2,"0")}</option>`;
-  }
-
-  for (let m = 0; m < 60; m++) {
-    minuteOptions += `<option value="${String(m).padStart(2,"0")}">${String(m).padStart(2,"0")}</option>`;
-  }
-
-  return `
-    <select id="${prefix}Hour" class="availability-clock-select">
-      ${hourOptions}
-    </select>
-    <span class="availability-clock-colon">:</span>
-    <select id="${prefix}Minute" class="availability-clock-select minute-select">
-      ${minuteOptions}
-    </select>
-    <select id="${prefix}Period" class="availability-clock-select period-select">
-      <option value="">AM/PM</option>
-      <option value="AM">AM</option>
-      <option value="PM">PM</option>
-    </select>
-  `;
-}
-
-
-function timeToPickerParts(time) {
-
-  if (!time) return null;
-
-  const total = timeToMinutes(time);
-  const hour24 = Math.floor(total / 60);
-  const minute = total % 60;
-
-  return {
-    hour: String(hour24 % 12 || 12).padStart(2,"0"),
-    minute: String(minute).padStart(2,"0"),
-    period: hour24 >= 12 ? "PM" : "AM"
-  };
-}
-
-
-function pickerPartsToTime(prefix) {
-
-  const hour = $(prefix + "Hour")?.value;
-  const minute = $(prefix + "Minute")?.value;
-  const period = $(prefix + "Period")?.value;
-
-  if (!hour || !minute || !period) {
-    return "";
-  }
-
-  let h = Number(hour);
-
-  if (period === "AM" && h === 12) h = 0;
-  if (period === "PM" && h !== 12) h += 12;
-
-  return minutesToTime(h * 60 + Number(minute));
-}
-
-
-function syncAvailabilityClockSelectors() {
-
-  const start = timeToPickerParts(selectedStartTime);
-  const end = timeToPickerParts(selectedEndTime);
-
-  if (start) {
-    $("availabilityStartHour").value = start.hour;
-    $("availabilityStartMinute").value = start.minute;
-    $("availabilityStartPeriod").value = start.period;
-  }
-
-  if (end) {
-    $("availabilityEndHour").value = end.hour;
-    $("availabilityEndMinute").value = end.minute;
-    $("availabilityEndPeriod").value = end.period;
-  }
-}
-
-
-window.checkAvailabilityClock = function() {
-
-  const start = pickerPartsToTime("availabilityStart");
-  const end = pickerPartsToTime("availabilityEnd");
-  const message = $("availabilityClockMessage");
+  const start = getAvailabilityPickerTime("Start");
+  const end = getAvailabilityPickerTime("End");
+  const result = $("availabilityCheckResult");
 
   if (!start || !end) {
-    if (message) {
-      message.className = "availability-clock-message error";
-      message.textContent = "Please select both start and end time.";
+
+    if (result) {
+      result.className = "availability-status unavailable";
+      result.textContent = "Please select both start and end time.";
     }
+
     return;
   }
 
-  const startMinutes = timeToMinutes(start);
+  if (!availabilityTimeIsInBusinessWindow(start) || !availabilityTimeIsInBusinessWindow(end)) {
+
+    if (result) {
+      result.className = "availability-status unavailable";
+      result.textContent = "Please choose a time between 10:00 AM and 1:00 AM.";
+    }
+
+    return;
+  }
+
+  let startMinutes = timeToMinutes(start);
   let endMinutes = timeToMinutes(end);
 
   if (endMinutes <= startMinutes) {
@@ -2286,35 +2296,45 @@ window.checkAvailabilityClock = function() {
   }
 
   if (endMinutes - startMinutes < 60) {
-    if (message) {
-      message.className = "availability-clock-message error";
-      message.textContent = "Minimum booking duration is 1 hour.";
+
+    if (result) {
+      result.className = "availability-status unavailable";
+      result.textContent = "Minimum booking duration is 1 hour.";
     }
+
     return;
   }
 
   for (let t = startMinutes; t < endMinutes; t += 30) {
+
     if (isTimeBooked(selectedAvailabilityDate, minutesToTime(t))) {
-      if (message) {
-        message.className = "availability-clock-message error";
-        message.textContent = "This time range is not available.";
+
+      if (result) {
+        result.className = "availability-status unavailable";
+        result.textContent = "This time range is not available.";
       }
+
       return;
     }
+
   }
 
   selectedStartTime = start;
   selectedEndTime = end;
 
-  if (message) {
-    message.className = "availability-clock-message success";
-    message.textContent = `${formatTime(start)} → ${formatTime(end)} is available.`;
+  if (result) {
+    result.className = "availability-status available";
+    result.textContent = `Available: ${formatTime(start)} – ${formatTime(end)}`;
   }
 
-  renderAvailability();
+  renderAvailabilitySlots();
 
-};
+}
 
+
+/* =====================================================
+   AVAILABILITY TIME SELECTION
+===================================================== */
 
 window.selectAvailabilityTime = function(time) {
 
@@ -2373,424 +2393,152 @@ window.bookSelectedAvailability = function() {
 
   openModal(selectedAvailabilityDate);
 
-  $("timeStatus").value = "confirmed";
   $("time").value = selectedStartTime;
   $("endTime").value = selectedEndTime;
-  updateTimePickerVisibility();
+
+  initializeBookingTimePicker();
+  setBookingTimePicker("Start", selectedStartTime);
+  setBookingTimePicker("End", selectedEndTime);
+  updateTimeStatusUI();
 
 };
 
 
 /* =====================================================
-   ADD BOOKING TIME STATUS
-   Add Booking uses the simple browser time clock.
-   Availability uses the custom HH / MM / AM-PM picker.
+   SHARED 12-HOUR TIME PICKER
+   Used in BOTH Add Booking and Availability.
+   12-hour clock + AM/PM + every minute.
 ===================================================== */
 
-function updateTimePickerVisibility() {
-
-  const mode =
-    $("timeStatus")?.value ||
-    "confirmed";
-
-  const startField =
-    $("startTimeField");
-
-  const endField =
-    $("endTimeField");
-
-  const startInput =
-    $("time");
-
-  const endInput =
-    $("endTime");
-
-  const hidden =
-    mode === "pending";
-
-  startField?.classList.toggle(
-    "time-not-required",
-    hidden
-  );
-
-  endField?.classList.toggle(
-    "time-not-required",
-    hidden
-  );
-
-  if (startInput) {
-    startInput.required = !hidden;
-    startInput.disabled = hidden;
-  }
-
-  if (endInput) {
-    endInput.required = !hidden;
-    endInput.disabled = hidden;
-  }
-
-  if (hidden) {
-    if (startInput) startInput.value = "";
-    if (endInput) endInput.value = "";
-  }
+function bookingHourOptions() {
+  return availabilityHourOptions();
 }
 
-
-$("timeStatus")?.addEventListener(
-  "change",
-  updateTimePickerVisibility
-);
-
-
-/* =====================================================
-   AVAILABILITY CUSTOM TIME PICKER
-   12-hour clock + every minute
-===================================================== */
-
-function buildAvailabilityTimeSelects(prefix) {
-
-  let hourOptions =
-    `<option value="">HH</option>`;
-
-  let minuteOptions =
-    `<option value="">MM</option>`;
-
-  for (let h = 1; h <= 12; h++) {
-    const value =
-      String(h).padStart(2, "0");
-
-    hourOptions +=
-      `<option value="${value}">${value}</option>`;
-  }
-
-  for (let m = 0; m < 60; m++) {
-    const value =
-      String(m).padStart(2, "0");
-
-    minuteOptions +=
-      `<option value="${value}">${value}</option>`;
-  }
-
-  return `
-    <select
-      id="${prefix}Hour"
-      class="availability-clock-select"
-      aria-label="${prefix} hour"
-    >
-      ${hourOptions}
-    </select>
-
-    <span class="availability-clock-colon">:</span>
-
-    <select
-      id="${prefix}Minute"
-      class="availability-clock-select minute-select"
-      aria-label="${prefix} minute"
-    >
-      ${minuteOptions}
-    </select>
-
-    <select
-      id="${prefix}Period"
-      class="availability-clock-select period-select"
-      aria-label="${prefix} AM or PM"
-    >
-      <option value="">AM/PM</option>
-      <option value="AM">AM</option>
-      <option value="PM">PM</option>
-    </select>
-  `;
+function bookingMinuteOptions() {
+  return availabilityMinuteOptions();
 }
 
-
-function timeToPickerParts(time) {
-
-  if (!time) return null;
-
-  const total =
-    timeToMinutes(time);
-
-  const hour24 =
-    Math.floor(total / 60);
-
-  const minute =
-    total % 60;
-
-  return {
-    hour: String(
-      hour24 % 12 || 12
-    ).padStart(2, "0"),
-    minute: String(minute).padStart(2, "0"),
-    period: hour24 >= 12 ? "PM" : "AM"
-  };
+function bookingPeriodOptions() {
+  return availabilityPeriodOptions();
 }
 
+function initializeBookingTimePicker() {
 
-function pickerPartsToTime(prefix) {
-
-  const hour =
-    $(prefix + "Hour")?.value;
-
-  const minute =
-    $(prefix + "Minute")?.value;
-
-  const period =
-    $(prefix + "Period")?.value;
-
-  if (!hour || !minute || !period) {
-    return "";
-  }
-
-  let h = Number(hour);
-
-  if (period === "AM" && h === 12) {
-    h = 0;
-  }
-
-  if (period === "PM" && h !== 12) {
-    h += 12;
-  }
-
-  return minutesToTime(
-    h * 60 + Number(minute)
-  );
-}
-
-
-function syncAvailabilityClockSelectors() {
-
-  const start =
-    timeToPickerParts(
-      selectedStartTime
-    );
-
-  const end =
-    timeToPickerParts(
-      selectedEndTime
-    );
-
-  const startHour = $("availabilityStartHour");
-  const startMinute = $("availabilityStartMinute");
-  const startPeriod = $("availabilityStartPeriod");
-
-  const endHour = $("availabilityEndHour");
-  const endMinute = $("availabilityEndMinute");
-  const endPeriod = $("availabilityEndPeriod");
-
-  if (startHour && startMinute && startPeriod) {
-    startHour.value = start?.hour || "";
-    startMinute.value = start?.minute || "";
-    startPeriod.value = start?.period || "";
-  }
-
-  if (endHour && endMinute && endPeriod) {
-    endHour.value = end?.hour || "";
-    endMinute.value = end?.minute || "";
-    endPeriod.value = end?.period || "";
-  }
-}
-
-
-function attachAvailabilityClockListeners() {
-
-  const fields = [
-    ["availabilityStart", "start"],
-    ["availabilityEnd", "end"]
+  const controls = [
+    ["bookingStartHour", "bookingStartMinute", "bookingStartPeriod"],
+    ["bookingEndHour", "bookingEndMinute", "bookingEndPeriod"]
   ];
 
-  fields.forEach(([prefix, side]) => {
+  controls.forEach(ids => {
 
-    [
-      $(prefix + "Hour"),
-      $(prefix + "Minute"),
-      $(prefix + "Period")
-    ].forEach(select => {
+    const hour = $(ids[0]);
+    const minute = $(ids[1]);
+    const period = $(ids[2]);
 
-      select?.addEventListener(
-        "change",
-        () => {
-
-          const time =
-            pickerPartsToTime(prefix);
-
-          if (!time) {
-            return;
-          }
-
-          if (side === "start") {
-            selectedStartTime = time;
-            selectedEndTime = null;
-          } else {
-            selectedEndTime = time;
-          }
-
-          updateAvailabilityClockMessage();
-          highlightAvailabilityGridSelection();
-        }
-      );
-
-    });
-  });
-}
-
-
-function highlightAvailabilityGridSelection() {
-
-  document
-    .querySelectorAll("[data-availability-time]")
-    .forEach(button => {
-
-      const time =
-        button.dataset.availabilityTime;
-
-      button.classList.toggle(
-        "start-selected",
-        time === selectedStartTime
-      );
-
-      button.classList.toggle(
-        "end-selected",
-        time === selectedEndTime
-      );
-    });
-}
-
-
-function updateAvailabilityClockMessage(
-  text = ""
-) {
-
-  const message =
-    $("availabilityClockMessage");
-
-  if (!message) return;
-
-  if (text) {
-    message.className =
-      "availability-clock-message";
-    message.textContent = text;
-    return;
-  }
-
-  if (!selectedStartTime) {
-    message.className =
-      "availability-clock-message";
-    message.textContent =
-      "Choose any time from 10:00 AM to 1:00 AM. You can select every minute.";
-    return;
-  }
-
-  if (!selectedEndTime) {
-    message.className =
-      "availability-clock-message";
-    message.textContent =
-      `Start: ${formatTime(selectedStartTime)}. Now select an end time.`;
-    return;
-  }
-
-  message.className =
-    "availability-clock-message";
-  message.textContent =
-    `${formatTime(selectedStartTime)} → ${formatTime(selectedEndTime)}`;
-}
-
-
-window.checkAvailabilityClock = function() {
-
-  const start =
-    pickerPartsToTime("availabilityStart");
-
-  const end =
-    pickerPartsToTime("availabilityEnd");
-
-  if (!start || !end) {
-    updateAvailabilityClockMessage(
-      "Please select both start and end time."
-    );
-    return;
-  }
-
-  const startMinutes =
-    timeToMinutes(start);
-
-  let endMinutes =
-    timeToMinutes(end);
-
-  if (endMinutes <= startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  /* Availability is limited to 10:00 AM → 1:00 AM. */
-  const endFromTimeline =
-    endMinutes;
-
-  if (startMinutes < 10 * 60) {
-    updateAvailabilityClockMessage(
-      "Start time must be between 10:00 AM and 1:00 AM."
-    );
-    return;
-  }
-
-  if (endFromTimeline > 25 * 60) {
-    updateAvailabilityClockMessage(
-      "End time cannot be later than 1:00 AM."
-    );
-    return;
-  }
-
-  if (endMinutes - startMinutes < 60) {
-    updateAvailabilityClockMessage(
-      "Minimum booking duration is 1 hour."
-    );
-    return;
-  }
-
-  for (let t = startMinutes; t < endMinutes; t += 30) {
-
-    if (
-      isTimeBooked(
-        selectedAvailabilityDate,
-        minutesToTime(t)
-      )
-    ) {
-      updateAvailabilityClockMessage(
-        "This time range is not available."
-      );
+    if (!hour || !minute || !period) {
       return;
     }
-  }
 
-  selectedStartTime = start;
-  selectedEndTime = end;
+    hour.innerHTML = bookingHourOptions();
+    minute.innerHTML = bookingMinuteOptions();
+    period.innerHTML = bookingPeriodOptions();
 
-  renderAvailability();
+    [hour, minute, period].forEach(element => {
+      element.onchange = () => {
+        syncBookingPickerToHidden(ids[0].includes("Start") ? "Start" : "End");
+      };
+    });
 
-  const message =
-    $("availabilityClockMessage");
+  });
 
-  if (message) {
-    message.className =
-      "availability-clock-message success";
-    message.textContent =
-      `${formatTime(start)} → ${formatTime(end)} is available.`;
-  }
-};
-
-
-/* =====================================================
-   BOOKING MODAL TIME STATUS
-===================================================== */
-
-function initializeBookingTimeStatus() {
-  updateTimePickerVisibility();
 }
 
+function setBookingTimePicker(prefix, time) {
 
-/* =====================================================
-   STARTUP HELPER
-===================================================== */
+  const parts = availabilityTimeToParts(time);
 
-initializeBookingTimeStatus();
+  const hour = $(prefix === "Start" ? "bookingStartHour" : "bookingEndHour");
+  const minute = $(prefix === "Start" ? "bookingStartMinute" : "bookingEndMinute");
+  const period = $(prefix === "Start" ? "bookingStartPeriod" : "bookingEndPeriod");
 
+  if (!hour || !minute || !period) {
+    return;
+  }
+
+  hour.value = parts.hour;
+  minute.value = parts.minute;
+  period.value = parts.period;
+
+}
+
+function getBookingTimePicker(prefix) {
+
+  const hour = $(prefix === "Start" ? "bookingStartHour" : "bookingEndHour");
+  const minute = $(prefix === "Start" ? "bookingStartMinute" : "bookingEndMinute");
+  const period = $(prefix === "Start" ? "bookingStartPeriod" : "bookingEndPeriod");
+
+  if (!hour || !minute || !period) {
+    return null;
+  }
+
+  return availabilityPartsToTime(
+    hour.value,
+    minute.value,
+    period.value
+  );
+
+}
+
+function syncBookingPickerToHidden(prefix) {
+
+  const time = getBookingTimePicker(prefix);
+  const hidden = $(prefix === "Start" ? "time" : "endTime");
+
+  if (hidden) {
+    hidden.value = time || "";
+  }
+
+}
+
+function updateTimeStatusUI() {
+
+  const status = $("timeStatus");
+  const startField = $("startTimeField");
+  const endField = $("endTimeField");
+
+  if (!status || !startField || !endField) {
+    return;
+  }
+
+  const disabled = status.value === "pending";
+
+  startField.classList.toggle("time-not-required", disabled);
+  endField.classList.toggle("time-not-required", disabled);
+
+  if (disabled) {
+    $("time").value = "";
+    $("endTime").value = "";
+    setBookingTimePicker("Start", null);
+    setBookingTimePicker("End", null);
+  }
+
+  [
+    "bookingStartHour",
+    "bookingStartMinute",
+    "bookingStartPeriod",
+    "bookingEndHour",
+    "bookingEndMinute",
+    "bookingEndPeriod"
+  ].forEach(id => {
+    const element = $(id);
+    if (element) {
+      element.disabled = disabled;
+    }
+  });
+
+}
+
+$("timeStatus")?.addEventListener("change", updateTimeStatusUI);
 
 /* =====================================================
    CUSTOMERS
