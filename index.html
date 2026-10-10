@@ -995,7 +995,7 @@
           <span>Date</span>
 
           <span>
-            Event / Customer
+            Event / Payment
           </span>
 
           <span>
@@ -1616,14 +1616,17 @@
 
         <div class="field">
 
-          <label>
-            Customer Name
+          <label for="advancePaid">
+            Advance Paid (₹) <span class="optional-field">Optional</span>
           </label>
 
           <input
-            id="customer"
-            type="text"
-            placeholder="Customer name"
+            id="advancePaid"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            placeholder="Enter advance amount (if paid)"
           >
 
         </div>
