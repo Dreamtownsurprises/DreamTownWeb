@@ -691,8 +691,9 @@ async function loadBookings() {
       type:
         row.event_type,
 
+      // Customer names are no longer collected or displayed in this branch.
       customer:
-        row.customer_name || "",
+        "",
 
       phone:
         row.phone || "",
@@ -705,6 +706,9 @@ async function loadBookings() {
 
       packageCost:
         row.package_cost ?? "",
+
+      advancePaid:
+        row.advance_paid ?? "",
 
       status:
         row.status,
@@ -887,7 +891,7 @@ function renderStats() {
   const customerSet =
     new Set(
       active
-        .map(b => b.phone || b.customer)
+        .map(b => b.phone)
         .filter(Boolean)
     );
 
@@ -1048,7 +1052,7 @@ function renderUpcoming() {
 
             <div class="sub">
               ${escapeHTML(
-                b.customer || "Customer not added"
+                `Booked by ${b.bookedBy || "Staff"}`
               )}
             </div>
 
@@ -1324,7 +1328,6 @@ function renderBookings() {
 
           b.type,
           b.bookedBy,
-          b.customer,
           b.phone,
           b.date,
           b.time,
@@ -1398,20 +1401,21 @@ function renderBookings() {
               )}
             </strong>
 
-            <div class="sub">
-
-              ${escapeHTML(
-                b.customer ||
-                "No customer"
-              )}
-
-            </div>
-
             ${b.packageCost !== "" && b.packageCost !== null && b.packageCost !== undefined ? `
               <div class="package-cost-small">
-                ₹${Number(b.packageCost).toLocaleString("en-IN")}
+                Package: ₹${Number(b.packageCost).toLocaleString("en-IN")}
               </div>
             ` : ""}
+
+            ${b.advancePaid !== "" && b.advancePaid !== null && b.advancePaid !== undefined ? `
+              <div class="advance-paid-small">
+                Advance paid: ₹${Number(b.advancePaid).toLocaleString("en-IN")}
+              </div>
+            ` : `
+              <div class="advance-paid-small advance-not-paid">
+                Advance paid: —
+              </div>
+            `}
 
           </div>
 
@@ -1556,6 +1560,7 @@ function openModal(
 
   $("packageCost").value = "";
   $("customPackageCost").value = "";
+  $("advancePaid").value = "";
   updatePackageCostUI();
 
   $("bookedBy").value =
@@ -1686,8 +1691,8 @@ async function saveBooking(event) {
     endTime: $("endTime").value,
     timeStatus,
     packageCost: getSelectedPackageCost(),
+    advancePaid: $("advancePaid").value.trim(),
     bookedBy: $("bookedBy").value.trim(),
-    customer: $("customer").value.trim(),
     phone: $("phone").value.trim(),
     status: $("status").value,
     notes: $("notes").value.trim()
@@ -1696,6 +1701,11 @@ async function saveBooking(event) {
 
   if (!b.date) {
     $("formError").textContent = "Please select a date.";
+    return;
+  }
+
+  if (b.advancePaid !== "" && (!Number.isFinite(Number(b.advancePaid)) || Number(b.advancePaid) < 0)) {
+    $("formError").textContent = "Advance paid must be zero or a positive amount.";
     return;
   }
 
@@ -1765,8 +1775,8 @@ async function saveBooking(event) {
 
     event_type: b.type,
     package_cost: b.packageCost === "" ? null : Number(b.packageCost),
+    advance_paid: b.advancePaid === "" ? null : Number(b.advancePaid),
     booked_by: b.bookedBy,
-    customer_name: b.customer || null,
     phone: b.phone || null,
     status: b.status,
     notes: b.notes || null
@@ -1848,7 +1858,7 @@ window.editBooking =
     $("time").value = b.time || "";
     $("endTime").value = b.endTime || "";
     $("bookedBy").value = b.bookedBy;
-    $("customer").value = b.customer;
+    $("advancePaid").value = b.advancePaid ?? "";
     $("phone").value = b.phone;
     $("notes").value = b.notes;
     $("formError").textContent = "";
@@ -1880,7 +1890,7 @@ window.deleteBooking =
 
     const ok =
       confirm(
-        `Delete booking for ${booking.customer || "this customer"}?`
+        `Delete this ${booking.type || "event"} booking?`
       );
 
 
@@ -3004,7 +3014,7 @@ function renderReports() {
       <strong>
         ${new Set(
           active
-            .map(b => b.phone || b.customer)
+            .map(b => b.phone)
             .filter(Boolean)
         ).size}
       </strong>
