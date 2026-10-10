@@ -767,11 +767,19 @@ async function autoCompletePastBookings() {
 
   const now = new Date();
 
-  const due = bookings.filter(booking => {
+  /*
+    Reconcile booking statuses against their actual end date/time:
+    - Past end time => Completed
+    - Future end time but stored as Completed => Confirmed
+    - Cancelled bookings are never changed
+    This also repairs future bookings that were incorrectly saved as Completed.
+  */
+
+  const updates = bookings.filter(booking => {
 
     if (
-      booking.status === "Completed" ||
       booking.status === "Cancelled" ||
+      !booking.date ||
       !booking.time ||
       !booking.endTime
     ) {
@@ -780,29 +788,56 @@ async function autoCompletePastBookings() {
 
     const endDateTime = getBookingEndDateTime(booking);
 
-    return endDateTime && endDateTime <= now;
+    if (!endDateTime) {
+      return false;
+    }
+
+    if (
+      endDateTime <= now &&
+      booking.status !== "Completed"
+    ) {
+      return true;
+    }
+
+    if (
+      endDateTime > now &&
+      booking.status === "Completed"
+    ) {
+      return true;
+    }
+
+    return false;
   });
 
-  if (!due.length) {
+  if (!updates.length) {
     return;
   }
 
   const results = await Promise.all(
-    due.map(booking =>
-      db
+    updates.map(booking => {
+      const endDateTime = getBookingEndDateTime(booking);
+
+      const correctedStatus =
+        endDateTime <= now
+          ? "Completed"
+          : "Confirmed";
+
+      return db
         .from("bookings")
-        .update({ status: "Completed" })
-        .eq("id", booking.id)
-    )
+        .update({ status: correctedStatus })
+        .eq("id", booking.id);
+    })
   );
 
   const failed = results.find(result => result.error);
 
   if (failed) {
-    console.error("Automatic completion error:", failed.error);
+    console.error(
+      "Booking status correction error:",
+      failed.error
+    );
   }
 }
-
 
 /* Run the completion check every minute while the dashboard is open. */
 setInterval(async () => {
