@@ -1779,6 +1779,7 @@ async function saveBooking(event) {
     event_end_time: timeStatus === "confirmed" ? b.endTime : null,
 
     event_type: b.type,
+    customer_name: "",
     package_cost: b.packageCost === "" ? null : Number(b.packageCost),
     advance_paid: b.advancePaid === "" ? null : Number(b.advancePaid),
     addons: b.addons || [],
