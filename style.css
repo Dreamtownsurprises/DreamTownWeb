@@ -3755,3 +3755,18 @@ nav button.active {
 .booking-map {
   display: none !important;
 }
+
+
+/* Booking payment summary: total and remaining balance */
+.booking-total-small {
+  margin-top: 7px;
+  color: var(--text, #f7e8ed);
+  font-size: 13px;
+  font-weight: 700;
+}
+.booking-remaining-small {
+  margin-top: 3px;
+  color: #86efac;
+  font-size: 13px;
+  font-weight: 800;
+}
