@@ -1037,6 +1037,35 @@ function renderUpcoming() {
   container.innerHTML =
     list.map(b => {
 
+      const packageAmount =
+        b.packageCost !== "" &&
+        b.packageCost !== null &&
+        b.packageCost !== undefined &&
+        Number.isFinite(Number(b.packageCost))
+          ? Number(b.packageCost)
+          : 0;
+
+      const addonsAmount = (Array.isArray(b.addons) ? b.addons : [])
+        .reduce((sum, addon) => {
+          const price = Number(addon.price);
+          return sum + (Number.isFinite(price) && price > 0 ? price : 0);
+        }, 0);
+
+      const advanceAmount =
+        b.advancePaid !== "" &&
+        b.advancePaid !== null &&
+        b.advancePaid !== undefined &&
+        Number.isFinite(Number(b.advancePaid))
+          ? Number(b.advancePaid)
+          : 0;
+
+      const totalAmount = packageAmount + addonsAmount;
+      const remainingAmount = Math.max(0, totalAmount - advanceAmount);
+      const hasAmountDetails =
+        packageAmount > 0 ||
+        addonsAmount > 0 ||
+        advanceAmount > 0;
+
       return `
 
         <div class="booking">
@@ -1411,6 +1440,15 @@ function renderBookings() {
                 ${(b.addons || []).map(addon => `
                   <div>${escapeHTML(addon.name)} — ₹${Number(addon.price).toLocaleString("en-IN")}</div>
                 `).join("")}
+              </div>
+            ` : ""}
+
+            ${hasAmountDetails ? `
+              <div class="booking-total-small">
+                Total: ₹${totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </div>
+              <div class="booking-remaining-small">
+                Remaining to pay: ₹${remainingAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
               </div>
             ` : ""}
 
