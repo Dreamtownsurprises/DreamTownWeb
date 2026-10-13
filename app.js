@@ -1395,6 +1395,36 @@ function renderBookings() {
   container.innerHTML =
     list.map(b => {
 
+      // Payment calculation for this booking row.
+      const packageAmount =
+        b.packageCost !== "" &&
+        b.packageCost !== null &&
+        b.packageCost !== undefined &&
+        Number.isFinite(Number(b.packageCost))
+          ? Number(b.packageCost)
+          : 0;
+
+      const addonsAmount = (Array.isArray(b.addons) ? b.addons : [])
+        .reduce((sum, addon) => {
+          const price = Number(addon.price);
+          return sum + (Number.isFinite(price) && price > 0 ? price : 0);
+        }, 0);
+
+      const advanceAmount =
+        b.advancePaid !== "" &&
+        b.advancePaid !== null &&
+        b.advancePaid !== undefined &&
+        Number.isFinite(Number(b.advancePaid))
+          ? Number(b.advancePaid)
+          : 0;
+
+      const totalAmount = packageAmount + addonsAmount;
+      const remainingAmount = Math.max(0, totalAmount - advanceAmount);
+      const hasAmountDetails =
+        packageAmount > 0 ||
+        addonsAmount > 0 ||
+        advanceAmount > 0;
+
       return `
 
         <div class="fullrow">
