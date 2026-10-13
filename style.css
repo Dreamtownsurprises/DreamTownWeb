@@ -3986,3 +3986,28 @@ nav button.active {
   .upcoming-details-dialog { padding: 22px 16px; }
   .upcoming-details-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Custom add-on builder and cake/polaroid option alignment */
+.addon-option { align-items: center; }
+.addon-option input[type="radio"] { accent-color: #d6a34f; flex: 0 0 auto; }
+.addon-option input[type="checkbox"] { accent-color: #d6a34f; flex: 0 0 auto; }
+.custom-addon-builder {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(233, 182, 94, .25);
+  border-radius: 14px;
+  background: rgba(233, 182, 94, .035);
+}
+.custom-addon-builder h4 { margin: 0 0 6px; color: #efb5ca; text-align: center; letter-spacing: .07em; }
+.custom-addon-builder p { margin: 0 0 12px; color: var(--muted, #c9aeb7); font-size: 13px; }
+.custom-addon-inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .6fr) auto; gap: 10px; align-items: end; }
+.custom-addon-inputs > div { min-width: 0; }
+.custom-addon-inputs label { display: block; margin-bottom: 6px; font-size: 12px; color: #e8cbd5; }
+.custom-addon-inputs input { width: 100%; min-width: 0; box-sizing: border-box; }
+.custom-addon-inputs button { min-height: 42px; white-space: nowrap; cursor: pointer; }
+.custom-addon-error { min-height: 16px; margin: 9px 0 0 !important; color: #e9b65e !important; }
+@media (max-width: 680px) {
+  .custom-addon-inputs { grid-template-columns: 1fr; }
+  .custom-addon-inputs button { width: 100%; }
+}
