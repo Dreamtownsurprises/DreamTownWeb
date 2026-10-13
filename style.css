@@ -3746,3 +3746,12 @@ nav button.active {
 @media (max-width: 700px) {
   .addons-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Branch 1 requested cleanup: hide location cards/buttons */
+.sidebar-location,
+.top-location,
+.map-card,
+.booking-map {
+  display: none !important;
+}
