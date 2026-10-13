@@ -710,6 +710,9 @@ async function loadBookings() {
       advancePaid:
         row.advance_paid ?? "",
 
+      addons:
+        Array.isArray(row.addons) ? row.addons : [],
+
       status:
         row.status,
 
@@ -767,19 +770,11 @@ async function autoCompletePastBookings() {
 
   const now = new Date();
 
-  /*
-    Reconcile booking statuses against their actual end date/time:
-    - Past end time => Completed
-    - Future end time but stored as Completed => Confirmed
-    - Cancelled bookings are never changed
-    This also repairs future bookings that were incorrectly saved as Completed.
-  */
-
-  const updates = bookings.filter(booking => {
+  const due = bookings.filter(booking => {
 
     if (
+      booking.status === "Completed" ||
       booking.status === "Cancelled" ||
-      !booking.date ||
       !booking.time ||
       !booking.endTime
     ) {
@@ -788,56 +783,29 @@ async function autoCompletePastBookings() {
 
     const endDateTime = getBookingEndDateTime(booking);
 
-    if (!endDateTime) {
-      return false;
-    }
-
-    if (
-      endDateTime <= now &&
-      booking.status !== "Completed"
-    ) {
-      return true;
-    }
-
-    if (
-      endDateTime > now &&
-      booking.status === "Completed"
-    ) {
-      return true;
-    }
-
-    return false;
+    return endDateTime && endDateTime <= now;
   });
 
-  if (!updates.length) {
+  if (!due.length) {
     return;
   }
 
   const results = await Promise.all(
-    updates.map(booking => {
-      const endDateTime = getBookingEndDateTime(booking);
-
-      const correctedStatus =
-        endDateTime <= now
-          ? "Completed"
-          : "Confirmed";
-
-      return db
+    due.map(booking =>
+      db
         .from("bookings")
-        .update({ status: correctedStatus })
-        .eq("id", booking.id);
-    })
+        .update({ status: "Completed" })
+        .eq("id", booking.id)
+    )
   );
 
   const failed = results.find(result => result.error);
 
   if (failed) {
-    console.error(
-      "Booking status correction error:",
-      failed.error
-    );
+    console.error("Automatic completion error:", failed.error);
   }
 }
+
 
 /* Run the completion check every minute while the dashboard is open. */
 setInterval(async () => {
@@ -1085,11 +1053,6 @@ function renderUpcoming() {
               )}
             </b>
 
-            <div class="sub">
-              ${escapeHTML(
-                `Booked by ${b.bookedBy || "Staff"}`
-              )}
-            </div>
 
           </div>
 
@@ -1111,21 +1074,11 @@ function renderUpcoming() {
 
           </div>
 
-          <div class="meta">
-
-            Booked by<br>
-
-            <b>
-              ${escapeHTML(
-                b.bookedBy
-              )}
-            </b>
-
-          </div>
-
           <div>
 
-            <span class="badge">
+            <span class="badge status-${String(b.status || "")
+              .toLowerCase()
+              .replace(/[^a-z0-9-]/g, "")}">
               ${escapeHTML(
                 b.status
               )}
@@ -1452,6 +1405,15 @@ function renderBookings() {
               </div>
             `}
 
+            ${(Array.isArray(b.addons) ? b.addons : []).length ? `
+              <div class="booking-addons-small">
+                <strong>Selected add-ons:</strong>
+                ${(b.addons || []).map(addon => `
+                  <div>${escapeHTML(addon.name)} — ₹${Number(addon.price).toLocaleString("en-IN")}</div>
+                `).join("")}
+              </div>
+            ` : ""}
+
           </div>
 
 
@@ -1596,6 +1558,9 @@ function openModal(
   $("packageCost").value = "";
   $("customPackageCost").value = "";
   $("advancePaid").value = "";
+  document.querySelectorAll('input[name="bookingAddon"]').forEach(input => {
+    input.checked = false;
+  });
   updatePackageCostUI();
 
   $("bookedBy").value =
@@ -1727,6 +1692,11 @@ async function saveBooking(event) {
     timeStatus,
     packageCost: getSelectedPackageCost(),
     advancePaid: $("advancePaid").value.trim(),
+    addons: Array.from(document.querySelectorAll('input[name="bookingAddon"]:checked'))
+      .map(input => {
+        const [name, price] = input.value.split("|");
+        return { name, price: Number(price) };
+      }),
     bookedBy: $("bookedBy").value.trim(),
     phone: $("phone").value.trim(),
     status: $("status").value,
@@ -1811,6 +1781,7 @@ async function saveBooking(event) {
     event_type: b.type,
     package_cost: b.packageCost === "" ? null : Number(b.packageCost),
     advance_paid: b.advancePaid === "" ? null : Number(b.advancePaid),
+    addons: b.addons || [],
     booked_by: b.bookedBy,
     phone: b.phone || null,
     status: b.status,
@@ -1872,7 +1843,7 @@ window.editBooking =
     $("editId").value = b.id;
     $("type").value = b.type;
     const savedPackageCost = String(b.packageCost ?? "");
-    const packageOptions = ["", "999", "1499", "1999"];
+    const packageOptions = ["", "799", "999", "1199", "1499", "1999"];
 
     if (packageOptions.includes(savedPackageCost)) {
       $("packageCost").value = savedPackageCost;
@@ -1894,6 +1865,12 @@ window.editBooking =
     $("endTime").value = b.endTime || "";
     $("bookedBy").value = b.bookedBy;
     $("advancePaid").value = b.advancePaid ?? "";
+    const selectedAddonValues = new Set(
+      (Array.isArray(b.addons) ? b.addons : []).map(addon => `${addon.name}|${addon.price}`)
+    );
+    document.querySelectorAll('input[name="bookingAddon"]').forEach(input => {
+      input.checked = selectedAddonValues.has(input.value);
+    });
     $("phone").value = b.phone;
     $("notes").value = b.notes;
     $("formError").textContent = "";
