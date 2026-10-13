@@ -1068,7 +1068,7 @@ function renderUpcoming() {
 
       return `
 
-        <div class="booking">
+        <div class="booking upcoming-booking-card" data-booking-id="${escapeHTML(String(b.id))}" role="button" tabindex="0" aria-label="View booking details">
 
           <div class="thumb">
             ${eventIcon(b.type)}
@@ -1122,6 +1122,94 @@ function renderUpcoming() {
     }).join("");
 
 }
+
+
+/* =====================================================
+   DASHBOARD UPCOMING BOOKING DETAILS
+===================================================== */
+
+function showUpcomingBookingDetails(bookingId) {
+  const booking = bookings.find(b => String(b.id) === String(bookingId));
+  if (!booking) return;
+
+  const money = value => `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  const packageAmount = Number(booking.packageCost || 0) || 0;
+  const addons = Array.isArray(booking.addons) ? booking.addons : [];
+  const addonsAmount = addons.reduce((sum, addon) => sum + (Number(addon.price) > 0 ? Number(addon.price) : 0), 0);
+  const advanceAmount = Number(booking.advancePaid || 0) || 0;
+  const totalAmount = packageAmount + addonsAmount;
+  const remainingAmount = Math.max(0, totalAmount - advanceAmount);
+
+  let modal = document.getElementById("upcomingDetailsModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "upcomingDetailsModal";
+    modal.className = "upcoming-details-overlay";
+    modal.innerHTML = `
+      <section class="upcoming-details-dialog" role="dialog" aria-modal="true" aria-labelledby="upcomingDetailsTitle">
+        <button type="button" class="upcoming-details-close" aria-label="Close details">×</button>
+        <div class="upcoming-details-content"></div>
+      </section>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener("click", event => {
+      if (event.target === modal || event.target.closest(".upcoming-details-close")) {
+        modal.classList.remove("is-open");
+      }
+    });
+  }
+
+  const content = modal.querySelector(".upcoming-details-content");
+  content.innerHTML = `
+    <p class="upcoming-details-eyebrow">DREAM TOWN SURPRISES</p>
+    <h2 id="upcomingDetailsTitle">${escapeHTML(booking.type || "Booking Details")}</h2>
+    <span class="badge status-${String(booking.status || "").toLowerCase().replace(/[^a-z0-9-]/g, "")}">${escapeHTML(booking.status || "Pending")}</span>
+
+    <div class="upcoming-details-grid">
+      <div><span>Date</span><strong>${escapeHTML(formatDate(booking.date))}</strong></div>
+      <div><span>Time</span><strong>${escapeHTML(booking.time ? formatTimeRange(booking.time, booking.endTime) : "Time Yet to be Confirmed")}</strong></div>
+      <div><span>Booked by</span><strong>${escapeHTML(booking.bookedBy || "—")}</strong></div>
+      <div><span>Phone</span><strong>${escapeHTML(booking.phone || "Not provided")}</strong></div>
+      <div><span>Package cost</span><strong>${packageAmount ? money(packageAmount) : "Not set"}</strong></div>
+      <div><span>Advance paid</span><strong>${advanceAmount ? money(advanceAmount) : "—"}</strong></div>
+    </div>
+
+    ${addons.length ? `
+      <div class="upcoming-details-section">
+        <h3>Selected add-ons</h3>
+        <ul>${addons.map(addon => `<li><span>${escapeHTML(addon.name || "Add-on")}</span><strong>${money(addon.price)}</strong></li>`).join("")}</ul>
+      </div>
+    ` : ""}
+
+    ${booking.notes ? `
+      <div class="upcoming-details-section">
+        <h3>Notes / Special requests</h3>
+        <p>${escapeHTML(booking.notes)}</p>
+      </div>
+    ` : ""}
+
+    <div class="upcoming-details-payment">
+      <div><span>Total amount</span><strong>${money(totalAmount)}</strong></div>
+      <div><span>Remaining to pay</span><strong>${money(remainingAmount)}</strong></div>
+    </div>
+  `;
+
+  modal.classList.add("is-open");
+}
+
+document.addEventListener("click", event => {
+  const card = event.target.closest(".upcoming-booking-card");
+  if (card) showUpcomingBookingDetails(card.dataset.bookingId);
+});
+
+document.addEventListener("keydown", event => {
+  const card = event.target.closest?.(".upcoming-booking-card");
+  if (card && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    showUpcomingBookingDetails(card.dataset.bookingId);
+  }
+});
 
 
 /* =====================================================
@@ -2999,132 +3087,120 @@ function renderCustomers() {
 
 function renderReports() {
 
-  const container =
-    $("reportsGrid");
+  const container = $("reportsGrid");
 
+  if (!container) return;
 
-  if (!container) {
-    return;
-  }
+  const active = bookings.filter(b => b.status !== "Cancelled");
+  const confirmed = bookings.filter(b => b.status === "Confirmed");
+  const completed = bookings.filter(b => b.status === "Completed");
+  const cancelled = bookings.filter(b => b.status === "Cancelled");
 
+  // Group every booking by its event month (YYYY-MM), including cancelled bookings.
+  const monthlyTotals = new Map();
 
-  const active =
-    bookings.filter(
-      b =>
-        b.status !== "Cancelled"
-    );
+  bookings.forEach(booking => {
+    if (!booking.date) return;
 
+    const date = new Date(`${booking.date}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return;
 
-  const confirmed =
-    bookings.filter(
-      b =>
-        b.status === "Confirmed"
-    );
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
+    if (!monthlyTotals.has(key)) {
+      monthlyTotals.set(key, {
+        key,
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        total: 0,
+        confirmed: 0,
+        completed: 0,
+        cancelled: 0
+      });
+    }
 
-  const completed =
-    bookings.filter(
-      b =>
-        b.status === "Completed"
-    );
+    const item = monthlyTotals.get(key);
+    item.total += 1;
 
+    if (booking.status === "Confirmed") item.confirmed += 1;
+    if (booking.status === "Completed") item.completed += 1;
+    if (booking.status === "Cancelled") item.cancelled += 1;
+  });
 
-  const cancelled =
-    bookings.filter(
-      b =>
-        b.status === "Cancelled"
-    );
-
+  const monthlyRows = [...monthlyTotals.values()]
+    .sort((a, b) => b.key.localeCompare(a.key));
 
   container.innerHTML = `
 
     <div class="report-card">
-
-      <strong>
-        ${active.length}
-      </strong>
-
-      <span>
-        Active Bookings
-      </span>
-
+      <strong>${active.length}</strong>
+      <span>Active Bookings</span>
     </div>
-
 
     <div class="report-card">
-
-      <strong>
-        ${confirmed.length}
-      </strong>
-
-      <span>
-        Confirmed
-      </span>
-
+      <strong>${confirmed.length}</strong>
+      <span>Confirmed</span>
     </div>
-
 
     <div class="report-card">
-
-      <strong>
-        ${completed.length}
-      </strong>
-
-      <span>
-        Completed
-      </span>
-
+      <strong>${completed.length}</strong>
+      <span>Completed</span>
     </div>
-
 
     <div class="report-card">
-
-      <strong>
-        ${cancelled.length}
-      </strong>
-
-      <span>
-        Cancelled
-      </span>
-
+      <strong>${cancelled.length}</strong>
+      <span>Cancelled</span>
     </div>
-
 
     <div class="report-card">
-
-      <strong>
-        ${new Set(
-          active
-            .map(b => b.phone)
-            .filter(Boolean)
-        ).size}
-      </strong>
-
-      <span>
-        Unique Customers
-      </span>
-
+      <strong>${new Set(active.map(b => b.phone).filter(Boolean)).size}</strong>
+      <span>Unique Customers</span>
     </div>
-
 
     <div class="report-card">
-
-      <strong>
-        ${active.filter(
-          b =>
-            b.type ===
-            "Birthday Surprise"
-        ).length}
-      </strong>
-
-      <span>
-        Birthday Surprises
-      </span>
-
+      <strong>${active.filter(b => b.type === "Birthday Surprise").length}</strong>
+      <span>Birthday Surprises</span>
     </div>
 
+    <section class="monthly-report">
+      <div class="monthly-report-heading">
+        <div>
+          <h3>Monthly Booking Summary</h3>
+          <p>Total bookings grouped by event date</p>
+        </div>
+        <span class="monthly-report-total">${bookings.length} total</span>
+      </div>
+
+      ${monthlyRows.length ? `
+        <div class="monthly-report-table-wrap">
+          <table class="monthly-report-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Total Bookings</th>
+                <th>Confirmed</th>
+                <th>Completed</th>
+                <th>Cancelled</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${monthlyRows.map(item => `
+                <tr>
+                  <td>${new Date(item.year, item.month, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</td>
+                  <td><strong>${item.total}</strong></td>
+                  <td>${item.confirmed}</td>
+                  <td>${item.completed}</td>
+                  <td>${item.cancelled}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      ` : `
+        <div class="monthly-report-empty">No bookings available yet.</div>
+      `}
+    </section>
   `;
-
 }
 
 
