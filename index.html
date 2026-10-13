@@ -1443,12 +1443,16 @@
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Videoshoot|299"><span>Videoshoot</span><b>₹299</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Photography|299"><span>Photography</span><b>₹299</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Fog Entry|599"><span>Fog Entry</span><b>₹599</b></label>
+              <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Polaroid Photos × 6|100"><span>Polaroid Photos × 6</span><b>₹100</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Polaroid Photos × 18|299"><span>Polaroid Photos × 18</span><b>₹299</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Bouquet (Medium)|499"><span>Bouquet — Medium</span><b>₹499</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Bouquet (Large)|699"><span>Bouquet — Large</span><b>₹699</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Photo Frame (Small 6×8)|299"><span>Photo Frame — Small (6×8)</span><b>₹299</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Photo Frame (Medium 12×8)|499"><span>Photo Frame — Medium (12×8)</span><b>₹499</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Additional 1 Hour|499"><span>Additional 1 Hour</span><b>₹499</b></label>
+              <label class="addon-option"><input type="radio" name="cakeAddon" value="Cake|50"><span>Cake</span><b>₹50</b></label>
+              <label class="addon-option"><input type="radio" name="cakeAddon" value="Cake|100"><span>Cake</span><b>₹100</b></label>
+              <label class="addon-option"><input type="radio" name="cakeAddon" value="Cake|200"><span>Cake</span><b>₹200</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Video Editing (1 min Reel)|349"><span>Video Editing — 1 min Reel</span><b>₹349</b></label>
             </div>
           </div>
@@ -1464,6 +1468,23 @@
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Combo: 3 + Bouquet|799"><span>Combo of 3 + Bouquet</span><b>₹799</b></label>
               <label class="addon-option"><input type="checkbox" name="bookingAddon" value="Combo: Bouquet + Fog Entry|899"><span>Bouquet + Fog Entry</span><b>₹899</b></label>
             </div>
+          </div>
+
+          <div class="custom-addon-builder">
+            <h4>♥ CUSTOM ADD-ON ♥</h4>
+            <p>Add an extra item and its price for this booking.</p>
+            <div class="custom-addon-inputs">
+              <div>
+                <label for="customAddonName">Add-on name</label>
+                <input id="customAddonName" type="text" maxlength="80" placeholder="e.g. LED letters">
+              </div>
+              <div>
+                <label for="customAddonPrice">Price (₹)</label>
+                <input id="customAddonPrice" type="number" min="0" step="0.01" placeholder="Enter any amount">
+              </div>
+              <button type="button" id="addCustomAddonBtn" class="secondary-btn">Add custom add-on</button>
+            </div>
+            <p id="customAddonError" class="custom-addon-error" aria-live="polite"></p>
           </div>
         </div>
 
