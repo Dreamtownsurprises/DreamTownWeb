@@ -4011,3 +4011,16 @@ nav button.active {
   .custom-addon-inputs { grid-template-columns: 1fr; }
   .custom-addon-inputs button { width: 100%; }
 }
+
+
+/* Package amount breakdown in Reports */
+.package-breakdown-report {
+  margin-top: 0;
+}
+.package-breakdown-report .monthly-report-table td:first-child strong {
+  color: #e9b65e;
+}
+.package-breakdown-report .monthly-report-table td:last-child {
+  font-weight: 700;
+  color: var(--text, #f7e8ed);
+}
