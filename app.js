@@ -3190,6 +3190,22 @@ function renderReports() {
   const monthlyRows = [...monthlyTotals.values()]
     .sort((a, b) => b.key.localeCompare(a.key));
 
+  // Count bookings by the actual package amount, excluding cancelled bookings.
+  // Custom package amounts are shown as their own amount rows too.
+  const packageCounts = new Map();
+
+  active.forEach(booking => {
+    const amount = Number(booking.packageCost);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+
+    const key = String(amount);
+    packageCounts.set(key, (packageCounts.get(key) || 0) + 1);
+  });
+
+  const packageRows = [...packageCounts.entries()]
+    .map(([amount, count]) => ({ amount: Number(amount), count }))
+    .sort((a, b) => a.amount - b.amount);
+
   container.innerHTML = `
 
     <div class="report-card">
@@ -3265,6 +3281,39 @@ function renderReports() {
         </div>
       ` : `
         <div class="monthly-report-empty">No bookings available yet.</div>
+      `}
+    </section>
+
+    <section class="monthly-report package-breakdown-report">
+      <div class="monthly-report-heading">
+        <div>
+          <h3>Package Amount Breakdown</h3>
+          <p>Number of non-cancelled bookings for each package amount</p>
+        </div>
+        <span class="monthly-report-total">${packageRows.reduce((sum, row) => sum + row.count, 0)} packages taken</span>
+      </div>
+
+      ${packageRows.length ? `
+        <div class="monthly-report-table-wrap">
+          <table class="monthly-report-table">
+            <thead>
+              <tr>
+                <th>Package Amount</th>
+                <th>Number of Bookings</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${packageRows.map(row => `
+                <tr>
+                  <td><strong>₹${row.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })} Package</strong></td>
+                  <td>${row.count} ${row.count === 1 ? "booking" : "bookings"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      ` : `
+        <div class="monthly-report-empty">No package bookings available yet.</div>
       `}
     </section>
   `;
