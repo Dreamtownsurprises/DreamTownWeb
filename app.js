@@ -1683,6 +1683,58 @@ $("search")
    MODAL
 ===================================================== */
 
+
+/* =====================================================
+   CUSTOM ADD-ONS
+===================================================== */
+function addAddonOption(name, price, checked = false, isCustom = false) {
+  const grid = document.querySelector('.addons-group .addons-grid');
+  if (!grid) return null;
+  const cleanName = String(name || '').trim();
+  const numericPrice = Number(price);
+  const value = `${cleanName}|${numericPrice}`;
+  let input = Array.from(document.querySelectorAll('input[name="bookingAddon"], input[name="cakeAddon"]'))
+    .find(el => el.value === value);
+  if (input) {
+    if (checked) input.checked = true;
+    return input;
+  }
+  const label = document.createElement('label');
+  label.className = 'addon-option';
+  if (isCustom) label.dataset.customAddon = 'true';
+  const safeName = cleanName.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const inputName = isCustom ? 'bookingAddon' : 'bookingAddon';
+  label.innerHTML = `<input type="checkbox" name="${inputName}" value="${value.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" ${checked ? 'checked' : ''}><span>${safeName}</span><b>₹${numericPrice.toLocaleString('en-IN', {maximumFractionDigits:2})}</b>`;
+  grid.appendChild(label);
+  return label.querySelector('input');
+}
+
+const addCustomAddonBtn = document.getElementById('addCustomAddonBtn');
+if (addCustomAddonBtn) {
+  addCustomAddonBtn.addEventListener('click', () => {
+    const nameEl = document.getElementById('customAddonName');
+    const priceEl = document.getElementById('customAddonPrice');
+    const errorEl = document.getElementById('customAddonError');
+    const name = nameEl.value.trim();
+    const price = priceEl.value.trim();
+    if (!name) {
+      errorEl.textContent = 'Enter the custom add-on name.';
+      nameEl.focus();
+      return;
+    }
+    if (price === '' || !Number.isFinite(Number(price)) || Number(price) < 0) {
+      errorEl.textContent = 'Enter a valid price (₹0 or more).';
+      priceEl.focus();
+      return;
+    }
+    const input = addAddonOption(name, Number(price), true, true);
+    if (input) input.checked = true;
+    errorEl.textContent = 'Custom add-on added and selected for this booking.';
+    nameEl.value = '';
+    priceEl.value = '';
+  });
+}
+
 function openModal(
   selectedDate = ""
 ) {
@@ -1714,7 +1766,7 @@ function openModal(
   $("packageCost").value = "";
   $("customPackageCost").value = "";
   $("advancePaid").value = "";
-  document.querySelectorAll('input[name="bookingAddon"]').forEach(input => {
+  document.querySelectorAll('input[name="bookingAddon"], input[name="cakeAddon"]').forEach(input => {
     input.checked = false;
   });
   updatePackageCostUI();
@@ -1848,9 +1900,11 @@ async function saveBooking(event) {
     timeStatus,
     packageCost: getSelectedPackageCost(),
     advancePaid: $("advancePaid").value.trim(),
-    addons: Array.from(document.querySelectorAll('input[name="bookingAddon"]:checked'))
+    addons: Array.from(document.querySelectorAll('input[name="bookingAddon"]:checked, input[name="cakeAddon"]:checked'))
       .map(input => {
-        const [name, price] = input.value.split("|");
+        const separator = input.value.lastIndexOf("|");
+        const name = input.value.slice(0, separator);
+        const price = input.value.slice(separator + 1);
         return { name, price: Number(price) };
       }),
     bookedBy: $("bookedBy").value.trim(),
@@ -2022,10 +2076,14 @@ window.editBooking =
     $("endTime").value = b.endTime || "";
     $("bookedBy").value = b.bookedBy;
     $("advancePaid").value = b.advancePaid ?? "";
-    const selectedAddonValues = new Set(
-      (Array.isArray(b.addons) ? b.addons : []).map(addon => `${addon.name}|${addon.price}`)
-    );
-    document.querySelectorAll('input[name="bookingAddon"]').forEach(input => {
+    const savedAddons = Array.isArray(b.addons) ? b.addons : [];
+    const selectedAddonValues = new Set(savedAddons.map(addon => `${addon.name}|${addon.price}`));
+    savedAddons.forEach(addon => {
+      const value = `${addon.name}|${addon.price}`;
+      const exists = Array.from(document.querySelectorAll('input[name="bookingAddon"], input[name="cakeAddon"]')).some(input => input.value === value);
+      if (!exists) addAddonOption(addon.name, addon.price, false, true);
+    });
+    document.querySelectorAll('input[name="bookingAddon"], input[name="cakeAddon"]').forEach(input => {
       input.checked = selectedAddonValues.has(input.value);
     });
     $("phone").value = b.phone;
@@ -3113,6 +3171,7 @@ function renderReports() {
         year: date.getFullYear(),
         month: date.getMonth(),
         total: 0,
+        packages: 0,
         confirmed: 0,
         completed: 0,
         cancelled: 0
@@ -3121,6 +3180,7 @@ function renderReports() {
 
     const item = monthlyTotals.get(key);
     item.total += 1;
+    if (booking.status !== "Cancelled" && booking.packageCost !== "" && booking.packageCost !== null && booking.packageCost !== undefined && Number(booking.packageCost) > 0) item.packages += 1;
 
     if (booking.status === "Confirmed") item.confirmed += 1;
     if (booking.status === "Completed") item.completed += 1;
@@ -3162,6 +3222,11 @@ function renderReports() {
       <span>Birthday Surprises</span>
     </div>
 
+    <div class="report-card">
+      <strong>${active.filter(b => b.packageCost !== "" && b.packageCost !== null && b.packageCost !== undefined && Number(b.packageCost) > 0).length}</strong>
+      <span>Total Packages Taken</span>
+    </div>
+
     <section class="monthly-report">
       <div class="monthly-report-heading">
         <div>
@@ -3178,6 +3243,7 @@ function renderReports() {
               <tr>
                 <th>Month</th>
                 <th>Total Bookings</th>
+                <th>Packages Taken</th>
                 <th>Confirmed</th>
                 <th>Completed</th>
                 <th>Cancelled</th>
@@ -3188,6 +3254,7 @@ function renderReports() {
                 <tr>
                   <td>${new Date(item.year, item.month, 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</td>
                   <td><strong>${item.total}</strong></td>
+                  <td>${item.packages}</td>
                   <td>${item.confirmed}</td>
                   <td>${item.completed}</td>
                   <td>${item.cancelled}</td>
